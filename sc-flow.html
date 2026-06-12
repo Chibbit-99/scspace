@@ -1,0 +1,1761 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>sc.flow — Enter the Ultimate Flow State</title>
+<meta name="description" content="sc.flow: Collaborative, gamified workspace driven by autonomous agentic AI. Part of the Simple Chibbit Space.">
+<style>
+/* ============================= RESET & TOKENS ============================= */
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
+:root {
+  --bg-app: #f8fafc;
+  --bg-card: #ffffff;
+  --text-main: #0f172a;
+  --text-muted: #64748b;
+  --border: #e2e8f0;
+  --primary: #3b82f6;
+  --primary-hover: #2563eb;
+  --success: #10b981;
+  --warning: #f59e0b;
+  --danger: #ef4444;
+  --priority-low: #22c55e;
+  --priority-medium: #eab308;
+  --priority-high: #ef4444;
+
+  --c1: #3b82f6;  /* flow blue */
+  --c2: #8b5cf6;  /* flow violet */
+  --c3: #ec4899;  /* flow pink */
+  --c4: #10b981;  /* flow green */
+  --c5: #f59e0b;  /* flow amber */
+  
+  --grad: linear-gradient(135deg, var(--c1), var(--c2) 40%, var(--c3) 75%, var(--c5));
+  --grad-ai: linear-gradient(135deg, var(--c4), var(--c1));
+  --radius: 12px;
+  --ease: cubic-bezier(.22,1,.36,1);
+  --line: var(--border);
+}
+
+[data-theme="dark"] {
+  --bg-app: #0f172a;
+  --bg-card: #1e293b;
+  --text-main: #f8fafc;
+  --text-muted: #94a3b8;
+  --border: #334155;
+  --primary: #60a5fa;
+  --primary-hover: #3b82f6;
+  --success: #34d399;
+  --warning: #fbbf24;
+  --danger: #f87171;
+  --priority-low: #4ade80;
+  --priority-medium: #fbbf24;
+  --priority-high: #f87171;
+
+  --c1: #60a5fa;
+  --c2: #a78bfa;
+  --c3: #f472b6;
+  --c4: #34d399;
+  --c5: #fbbf24;
+
+  --grad: linear-gradient(135deg, var(--c1), var(--c2) 40%, var(--c3) 75%, var(--c5));
+  --grad-ai: linear-gradient(135deg, var(--c4), var(--c1));
+  --line: var(--border);
+}
+
+html{scroll-behavior:smooth}
+body{
+  font-family:system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  background:var(--bg-app);color:var(--text-main);overflow-x:hidden;line-height:1.6;
+  transition: background-color 0.4s, color 0.4s;
+}
+::selection{background:rgba(59, 130, 246, 0.25)}
+a{color:inherit;text-decoration:none}
+button{font:inherit;cursor:pointer;border:none;background:none;color:inherit}
+img,svg{display:block}
+.wrap{max-width:1180px;margin:0 auto;padding:0 24px}
+
+/* ============================= BACKGROUND FX ============================= */
+#bg-canvas{position:fixed;inset:0;z-index:-3;width:100%;height:100%;pointer-events:none}
+body::before {
+  content: '';
+  position: fixed;
+  top: 0; left: 0; width: 100%; height: 100%;
+  background: linear-gradient(
+    135deg,
+    rgba(59, 130, 246, 0.04) 0%,
+    rgba(139, 92, 246, 0.04) 50%,
+    rgba(59, 130, 246, 0.04) 100%
+  );
+  background-size: 400% 400%;
+  animation: gradientShift 18s ease infinite;
+  z-index: -2;
+  pointer-events: none;
+}
+@keyframes gradientShift {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+[data-theme="dark"] body::before {
+  background: linear-gradient(
+    135deg,
+    rgba(96, 165, 250, 0.06) 0%,
+    rgba(168, 85, 247, 0.06) 50%,
+    rgba(96, 165, 250, 0.06) 100%
+  );
+  background-size: 400% 400%;
+}
+.grain{position:fixed;inset:0;z-index:-1;pointer-events:none;opacity:.03;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.6'/%3E%3C/svg%3E");}
+
+/* scroll progress bar */
+#progress{position:fixed;top:0;left:0;height:3px;width:0;background:var(--grad);z-index:1000;box-shadow:0 0 12px rgba(59, 130, 246,.5)}
+
+/* ============================= NAV ============================= */
+nav{position:fixed;top:0;left:0;right:0;z-index:900;transition:background .4s,border-color .4s,backdrop-filter .4s;border-bottom:1px solid transparent}
+nav.scrolled{background:rgba(255,255,255,.76);backdrop-filter:blur(16px);border-color:var(--border)}
+[data-theme="dark"] nav.scrolled{background:rgba(15,23,42,.76);border-color:var(--border)}
+
+.nav-inner{max-width:1180px;margin:0 auto;padding:14px 24px;display:flex;align-items:center;gap:28px}
+.logo{display:flex;align-items:center;gap:10px;font-weight:800;font-size:1.15rem;letter-spacing:.2px;color:var(--text-main)}
+.logo .mark{flex:none;width:34px;height:34px;filter:drop-shadow(0 2px 8px rgba(59, 130, 246, 0.25))}
+.logo .grad-txt{background:var(--grad);-webkit-background-clip:text;background-clip:text;color:transparent}
+.nav-links{display:flex;gap:4px;margin-left:auto}
+.nav-links a{padding:8px 14px;border-radius:99px;font-size:.92rem;color:var(--text-muted);transition:.25s}
+.nav-links a:hover{color:var(--text-main);background:rgba(59, 130, 246,.08)}
+
+/* Theme toggle in nav */
+.theme-toggle{width:36px;height:36px;border-radius:50%;border:1px solid var(--border);display:grid;place-items:center;font-size:1.05rem;transition:background .2s, border-color .2s;color:var(--text-main)}
+.theme-toggle:hover{background:rgba(59, 130, 246,.08);border-color:var(--primary)}
+
+.btn{display:inline-flex;align-items:center;gap:8px;padding:11px 22px;border-radius:99px;font-weight:700;font-size:.95rem;transition:transform .25s var(--ease),box-shadow .25s;position:relative;overflow:hidden}
+.btn-primary{background:var(--grad);background-size:200% 200%;color:#fff;animation:gradShift 6s ease infinite;box-shadow:0 4px 18px rgba(59, 130, 246,.25)}
+.btn-primary:hover{transform:translateY(-2px) scale(1.02);box-shadow:0 8px 24px rgba(59, 130, 246,.45)}
+.btn-ghost{border:1px solid var(--border);color:var(--text-main)}
+.btn-ghost:hover{transform:translateY(-2px);background:rgba(59, 130, 246,.05);border-color:var(--primary)}
+@keyframes gradShift{0%,100%{background-position:0% 50%}50%{background-position:100% 50%}}
+.btn .shine{position:absolute;top:0;left:-80%;width:50%;height:100%;background:linear-gradient(105deg,transparent,rgba(255,255,255,.35),transparent);transform:skewX(-20deg);animation:shine 3.5s ease infinite}
+@keyframes shine{0%,60%{left:-80%}100%{left:160%}}
+
+/* ============================= HERO ============================= */
+header{min-height:92vh;display:flex;flex-direction:column;justify-content:center;position:relative;padding:140px 0 60px;text-align:center}
+.eyebrow{display:inline-flex;align-items:center;gap:10px;margin:0 auto 26px;padding:8px 18px;border-radius:99px;border:1px solid var(--border);background:var(--bg-card);font-size:.85rem;color:var(--text-muted);animation:fadeDown 1s var(--ease) both;box-shadow:0 4px 12px rgba(0,0,0,0.02)}
+.eyebrow .dot{width:8px;height:8px;border-radius:50%;background:var(--c4);box-shadow:0 0 0 0 rgba(16,185,129,.5);animation:ping 2s infinite}
+@keyframes ping{0%{box-shadow:0 0 0 0 rgba(16,185,129,.5)}70%{box-shadow:0 0 0 10px rgba(16,185,129,0)}100%{box-shadow:0 0 0 0 rgba(16,185,129,0)}}
+h1{font-size:clamp(2.6rem,6.6vw,4.8rem);line-height:1.08;font-weight:800;letter-spacing:-.02em;max-width:980px;margin:0 auto}
+h1 .word{display:inline-block;opacity:0;transform:translateY(30px);animation:wordUp .8s var(--ease) forwards}
+h1 .grad-txt{background:var(--grad);background-size:200% auto;-webkit-background-clip:text;background-clip:text;color:transparent;animation:wordUp .8s var(--ease) forwards,gradShift 5s ease infinite}
+@keyframes wordUp{to{opacity:1;transform:none}}
+.hero-sub{max-width:680px;margin:26px auto 0;color:var(--text-muted);font-size:1.15rem;animation:fadeUp 1s .4s var(--ease) both;line-height:1.7}
+.hero-cta{display:flex;gap:14px;justify-content:center;margin-top:38px;animation:fadeUp 1s .6s var(--ease) both}
+@keyframes fadeUp{from{opacity:0;transform:translateY(30px)}to{opacity:1;transform:none}}
+@keyframes fadeDown{from{opacity:0;transform:translateY(-20px)}to{opacity:1;transform:none}}
+
+/* hero orbit zone */
+.orbit-zone{position:relative;height:320px;margin-top:40px;animation:fadeUp 1.2s .8s var(--ease) both}
+.orbit-core{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:110px;height:110px;animation:coreFloat 5s ease-in-out infinite;filter:drop-shadow(0 4px 20px rgba(59, 130, 246, 0.22));z-index:2}
+@keyframes coreFloat{0%,100%{transform:translate(-50%,-53%)}50%{transform:translate(-50%,-47%)}}
+.orbit-ring{position:absolute;left:50%;top:50%;border:1px dashed var(--border);border-radius:50%;transform:translate(-50%,-50%)}
+.ring-1{width:260px;height:260px;animation:spin 28s linear infinite}
+.ring-2{width:460px;height:460px;animation:spinRev 42s linear infinite}
+@keyframes spin{from{transform:translate(-50%,-50%) rotate(0)}to{transform:translate(-50%,-50%) rotate(360deg)}}
+@keyframes spinRev{from{transform:translate(-50%,-50%) rotate(0)}to{transform:translate(-50%,-50%) rotate(-360deg)}}
+.orbit-ring .sat{position:absolute;width:64px;height:64px;border-radius:16px;background:var(--bg-card);border:1px solid var(--border);display:grid;place-items:center;font-size:1.6rem;box-shadow:0 8px 24px rgba(0,0,0,.08);transition:transform .3s;cursor:pointer}
+.orbit-ring .sat:hover{transform:scale(1.15) !important;border-color:var(--primary);box-shadow:0 0 16px rgba(59, 130, 246,.25)}
+.ring-1 .sat{top:-32px;left:calc(50% - 32px);animation:spinRev 28s linear infinite}
+.ring-2 .sat{animation:spin 42s linear infinite}
+.ring-2 .sat.s1{top:-32px;left:calc(50% - 32px)}
+.ring-2 .sat.s2{bottom:36px;left:14px}
+.ring-2 .sat.s3{bottom:36px;right:14px}
+
+.scroll-hint{position:absolute;bottom:20px;left:50%;transform:translateX(-50%);color:var(--text-muted);font-size:.8rem;letter-spacing:.15em;text-transform:uppercase;animation:fadeUp 1s 1.2s both}
+.scroll-hint .mouse{width:24px;height:38px;border:2px solid var(--text-muted);border-radius:14px;margin:10px auto 0;position:relative}
+.scroll-hint .mouse::after{content:"";position:absolute;top:7px;left:50%;width:4px;height:8px;margin-left:-2px;border-radius:4px;background:var(--c1);animation:wheel 1.6s ease infinite}
+@keyframes wheel{0%{opacity:1;transform:translateY(0)}100%{opacity:0;transform:translateY(12px)}}
+
+/* ============================= STICKY STACKING SCROLLER ============================= */
+.scroller-section{position:relative;}
+.scroller-head{padding-top:110px;text-align:center;margin-bottom:60px}
+.scroller-head h2{font-size:clamp(2rem,5vw,3.2rem);font-weight:800;letter-spacing:-.02em}
+
+#flow-showcase {
+  position: relative;
+  padding-bottom: 120px;
+}
+
+.scroller-layout {
+  display: flex;
+  max-width: 1240px;
+  margin: 0 auto;
+  padding: 0 40px;
+  gap: 50px;
+  position: relative;
+  --activeIndex: 0;
+}
+
+/* Left side panels STACKING sticky */
+.scroll-left-cards {
+  width: 44%;
+  position: relative;
+}
+
+.scroll-step {
+  position: sticky;
+  top: calc(140px + var(--i) * 20px);
+  height: 420px;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 30px;
+  box-shadow: 0 10px 40px rgba(0,0,0,0.03);
+  margin-bottom: 25vh; /* gaps allowing scroll stack */
+  transition: transform 0.4s var(--ease), opacity 0.4s var(--ease), filter 0.4s var(--ease), border-color 0.4s, box-shadow 0.4s var(--ease);
+  transform-origin: center top;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+
+[data-theme="dark"] .scroll-step {
+  box-shadow: 0 10px 40px rgba(0,0,0,0.25);
+}
+
+/* Stacking / Dimming effects */
+.scroll-step.stacked {
+  transform: translateY(calc(var(--i) * 20px - 25px)) scale(calc(1 - (var(--activeIndex) - var(--i)) * 0.035));
+  opacity: 0.5;
+  filter: blur(1px);
+  box-shadow: 0 4px 20px rgba(0,0,0,0.01);
+  pointer-events: none;
+}
+
+.scroll-step.active {
+  transform: translateY(calc(var(--i) * 20px)) scale(1);
+  opacity: 1;
+  filter: none;
+  border-color: var(--primary);
+  box-shadow: 0 15px 45px rgba(59, 130, 246, 0.08);
+  pointer-events: auto;
+}
+[data-theme="dark"] .scroll-step.active {
+  box-shadow: 0 15px 45px rgba(96, 165, 250, 0.12);
+}
+
+.step-kicker{display:inline-flex;align-items:center;gap:8px;font-size:.78rem;font-weight:700;letter-spacing:.18em;text-transform:uppercase;color:var(--primary);margin-bottom:12px}
+.step-kicker .step-circle{width:18px;height:18px;border-radius:50%;border:1px solid var(--border);display:grid;place-items:center;font-size:.65rem;color:var(--text-muted)}
+.scroll-step.active .step-kicker .step-circle{background:var(--primary);color:var(--bg-card);border-color:var(--primary)}
+
+/* Giant Stat Card */
+.stat-box{background:var(--bg-app);border:1px solid var(--border);border-radius:12px;padding:18px 22px;margin-bottom:14px;box-shadow:inset 0 2px 4px rgba(0,0,0,0.01)}
+.stat-box .num{font-size:clamp(2rem,3.5vw,2.9rem);font-weight:800;letter-spacing:-.01em;line-height:1.1;background:var(--grad);-webkit-background-clip:text;background-clip:text;color:transparent;margin-bottom:4px}
+.stat-bar-track{width:100%;height:5px;background:rgba(0,0,0,.05);border-radius:99px;overflow:hidden;position:relative;margin-top:6px}
+[data-theme="dark"] .stat-bar-track{background:rgba(255,255,255,.08)}
+.stat-bar-fill{position:absolute;left:0;top:0;bottom:0;width:0%;background:var(--grad);border-radius:99px;transition:width 1.2s cubic-bezier(.22,1,.36,1)}
+.scroll-step.active .stat-bar-fill{width:var(--p-target)}
+
+.step-desc{font-size:1rem;color:var(--text-muted);line-height:1.5;margin-bottom:16px}
+.step-desc b{color:var(--text-main)}
+
+/* Advantage Card */
+.advantage-card{background:rgba(59, 130, 246, 0.04);border:1px solid rgba(59, 130, 246, 0.15);border-radius:10px;padding:14px 18px;position:relative;overflow:hidden;transition:.3s}
+.advantage-card::before{content:"";position:absolute;top:-50%;left:-50%;width:200%;height:200%;background:radial-gradient(100px circle at var(--mx,0) var(--my,0),rgba(59, 130, 246,.08),transparent 70%);opacity:0;pointer-events:none}
+.advantage-card:hover::before{opacity:1}
+.scroll-step:nth-child(5) .advantage-card{background:rgba(16, 185, 129, 0.04);border-color:rgba(16, 185, 129, 0.18)}
+.advantage-head{display:flex;align-items:center;gap:8px;font-weight:800;font-size:0.95rem;color:var(--text-main);margin-bottom:4px}
+.advantage-head span{background:var(--grad);-webkit-background-clip:text;background-clip:text;color:transparent}
+.scroll-step:nth-child(5) .advantage-head span{background:var(--grad-ai);-webkit-background-clip:text;background-clip:text}
+.advantage-head .chk-flow{font-size:1rem;color:var(--success)}
+.advantage-card p{font-size:.88rem;color:var(--text-muted);line-height:1.45}
+
+/* Right side sticky mock container */
+.scroll-right-sticky{width:50%;position:sticky;top:140px;height:520px;display:flex;align-items:center;justify-content:center}
+.mock-shell{width:100%;height:100%;background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;box-shadow:0 24px 60px rgba(0,0,0,.04);display:flex;flex-direction:column;transform-style:preserve-3d;transition:transform .4s var(--ease), border-color 0.4s}
+[data-theme="dark"] .mock-shell{box-shadow:0 24px 60px rgba(0,0,0,.35)}
+.mock-shell:hover{transform:translateY(-2px) rotateX(1deg) rotateY(-1deg)}
+.mock-bar{height:36px;background:var(--bg-app);border-bottom:1px solid var(--border);display:flex;align-items:center;padding:0 18px;gap:6px;position:relative}
+.mock-bar i{width:10px;height:10px;border-radius:50%;display:inline-block}
+.mock-bar i:nth-child(1){background:#ff5f56}
+.mock-bar i:nth-child(2){background:#ffbd2e}
+.mock-bar i:nth-child(3){background:#27c93f}
+.mock-bar span{position:absolute;left:50%;transform:translateX(-50%);font-size:.74rem;color:var(--text-muted);letter-spacing:.05em;font-family:monospace}
+
+/* Mock App Layout mimicking flow.html */
+.mock-app-layout {
+  display: flex;
+  flex: 1;
+  height: calc(100% - 36px);
+  background: var(--bg-app);
+}
+.mock-sidebar {
+  width: 58px;
+  background: var(--bg-card);
+  border-right: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  padding: 14px 0;
+  align-items: center;
+  gap: 16px;
+  transition: background-color 0.4s, border-color 0.4s;
+}
+.mock-logo {
+  width: 24px;
+  height: 24px;
+  margin-bottom: 6px;
+}
+.mock-nav-item {
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.1rem;
+  color: var(--text-muted);
+  transition: background-color 0.2s, color 0.2s;
+  cursor: pointer;
+}
+.mock-nav-item:hover {
+  background: rgba(59, 130, 246, 0.04);
+  color: var(--text-main);
+}
+.mock-nav-item.active {
+  background: rgba(59, 130, 246, 0.08);
+  color: var(--primary);
+}
+[data-theme="dark"] .mock-nav-item.active {
+  background: rgba(96, 165, 250, 0.12);
+}
+
+.mock-content {
+  flex: 1;
+  position: relative;
+  overflow: hidden;
+  background: var(--bg-app);
+  padding: 14px;
+}
+
+/* ============================= MIMICKED FLOW.HTML PAGES ============================= */
+.mock-layer {
+  position: absolute;
+  inset: 14px;
+  opacity: 0;
+  transform: translateY(20px) scale(0.97);
+  filter: blur(4px);
+  transition: opacity 0.5s var(--ease), transform 0.5s var(--ease), filter 0.5s var(--ease);
+  pointer-events: none;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.mock-layer.active {
+  opacity: 1;
+  transform: none;
+  filter: none;
+  pointer-events: auto;
+}
+
+.mock-page-title {
+  font-size: 1.15rem;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  color: var(--text-main);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 4px;
+}
+.mock-page-subtitle {
+  font-size: 0.76rem;
+  color: var(--text-muted);
+  margin-top: -6px;
+  margin-bottom: 6px;
+}
+
+/* --- Mimicked Tasks (Kanban) view --- */
+.view-toggle-btn {
+  border: 1px solid var(--border);
+  background: var(--bg-card);
+  color: var(--text-muted);
+  border-radius: 6px;
+  padding: 4px 8px;
+  font-size: 0.72rem;
+  font-weight: 600;
+}
+.view-toggle-btn.active {
+  background: rgba(59,130,246,0.08);
+  border-color: rgba(59,130,246,0.25);
+  color: var(--primary);
+}
+
+.kanban-wrapper{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;flex:1;min-height:0}
+.kanban-col{background:var(--bg-card);border:1px solid var(--border);border-radius:10px;padding:8px;display:flex;flex-direction:column;gap:6px;transition: background-color 0.4s}
+.kanban-col h5{font-size:.7rem;font-weight:700;letter-spacing:.05em;text-transform:uppercase;margin-bottom:2px;display:flex;align-items:center;justify-content:space-between;color:var(--text-main)}
+.kanban-col h5 span{font-size:0.65rem;color:var(--text-muted);background:var(--bg-app);padding:1px 5px;border-radius:10px}
+.kanban-drop-zone {display:flex;flex-direction:column;gap:6px;flex:1;min-height:0}
+
+.kanban-task-card {
+  background: var(--bg-app);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 8px 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  position: relative;
+  transition: box-shadow .2s, transform .2s, background-color 0.4s;
+}
+.kanban-task-card-top { display: flex; gap: 6px; align-items: flex-start; }
+.task-checkbox {
+  width: 13px; height: 13px; border-radius: 3px; border: 1px solid var(--border);
+  display: grid; place-items: center; font-size: 0.52rem; color: #fff; cursor: pointer; flex-shrink: 0; margin-top: 2px;
+}
+.kanban-task-card-body { min-width: 0; flex: 1; }
+.kanban-task-name { font-weight: 600; font-size: 0.76rem; color: var(--text-main); line-height: 1.3; }
+.kanban-task-subtitle { font-size: 0.65rem; color: var(--text-muted); margin-top: 1px; }
+
+.priority-badge {
+  display: inline-flex; align-items: center; font-size: 0.58rem; font-weight: 700; padding: 1px 5px; border-radius: 99px; text-transform: uppercase;
+}
+.priority-badge.low { background: rgba(34,197,94,0.08); color: var(--priority-low); }
+.priority-badge.medium { background: rgba(234,179,8,0.08); color: var(--priority-medium); }
+.priority-badge.high { background: rgba(239,68,68,0.08); color: var(--priority-high); }
+
+/* Drag task animation mimick */
+@keyframes kanbanDragAndCheck {
+  0%, 15% { transform: translate(0, 0) scale(1); box-shadow: none; border-color: var(--border); }
+  35% { transform: translate(105%, -10px) scale(1.04); box-shadow: 0 4px 12px rgba(59, 130, 246, 0.15); border-color: var(--primary); }
+  55% { transform: translate(105%, 98px) scale(1.04); box-shadow: 0 4px 12px rgba(59, 130, 246, 0.15); border-color: var(--primary); }
+  65%, 85% { transform: translate(105%, 98px) scale(1); box-shadow: none; border-color: var(--border); opacity: 0.8; }
+  92%, 100% { transform: translate(0, 0) scale(1); box-shadow: none; border-color: var(--border); opacity: 1; }
+}
+.moving-card{animation:kanbanDragAndCheck 8s cubic-bezier(.22,1,.36,1) infinite}
+
+.moving-card .task-checkbox { animation: checkboxTick 8s infinite; }
+.moving-card .kanban-task-name { animation: textCompletedStrike 8s infinite; }
+
+@keyframes checkboxTick {
+  0%, 58% { background: transparent; border-color: var(--border); content: ''; }
+  62%, 85% { background: var(--success); border-color: var(--success); }
+  92%, 100% { background: transparent; border-color: var(--border); }
+}
+@keyframes textCompletedStrike {
+  0%, 58% { text-decoration: none; color: var(--text-main); }
+  62%, 85% { text-decoration: line-through; color: var(--text-muted); }
+  92%, 100% { text-decoration: none; color: var(--text-main); }
+}
+
+/* --- Mimicked Calendar Page --- */
+.calendar-grid-bezel {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 4px;
+  flex: 1;
+}
+.calendar-header-week {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 4px;
+  text-align: center;
+  font-weight: 600;
+  color: var(--text-muted);
+  font-size: 0.72rem;
+  padding-bottom: 4px;
+  border-bottom: 1px solid var(--border);
+}
+.calendar-cell-bezel {
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 4px;
+  background: var(--bg-card);
+  min-height: 80px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 0.7rem;
+}
+.calendar-cell-bezel.other-month { opacity: 0.4; }
+.calendar-cell-bezel.today {
+  background: rgba(59, 130, 246, 0.05); border: 1.5px solid var(--primary);
+}
+.calendar-cell-num { font-weight: 700; color: var(--text-main); margin-bottom: 2px; display: block; }
+.calendar-cell-num.today-num { color: var(--primary); }
+
+.calendar-item-chip {
+  display: flex; align-items: center; gap: 4px; padding: 2px 4px; border-radius: 4px; background: var(--bg-app); border: 1px solid var(--border); font-size: 0.58rem; line-height: 1.2; overflow: hidden;
+  border-left: 3px solid var(--primary); color: var(--text-main); text-overflow: ellipsis; white-space: nowrap;
+}
+.calendar-item-chip.task.low { border-left-color: var(--priority-low); }
+.calendar-item-chip.task.medium { border-left-color: var(--priority-medium); }
+.calendar-item-chip.task.high { border-left-color: var(--priority-high); }
+.calendar-item-chip.timetable { border-left-color: var(--c2); }
+
+/* --- Mimicked Projects Page --- */
+.project-card {
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--bg-card);
+  padding: 12px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.01);
+  transition: background-color 0.4s;
+}
+.project-card-header { display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; }
+.project-card-title { font-size: 0.92rem; font-weight: 750; color: var(--text-main); }
+.project-card-desc { font-size: 0.72rem; color: var(--text-muted); margin-top: 1px; }
+
+.progress-container { display: flex; flex-direction: column; gap: 4px; }
+.progress-bar { width: 100%; height: 5px; background: rgba(0,0,0,0.05); border-radius: 10px; overflow: hidden; }
+[data-theme="dark"] .progress-bar { background: rgba(255,255,255,0.08); }
+.progress-fill { height: 100%; width: 0%; background: var(--primary); border-radius: 10px; transition: width 1.5s var(--ease); }
+.mock-layer.active .progress-fill { width: 75%; }
+.progress-text { font-size: 0.65rem; color: var(--text-muted); text-align: right; }
+
+.decomp-subtasks { display: flex; flex-direction: column; gap: 6px; margin-top: 4px; position: relative; }
+.decomp-subtasks::before {
+  content: ""; position: absolute; left: 15px; top: 12px; bottom: 12px; width: 1.5px; background: var(--border);
+}
+.decomp-row { display: flex; align-items: center; gap: 8px; padding-left: 6px; position: relative; opacity: 0; transform: translateY(8px); transition: opacity 0.5s, transform 0.5s; }
+.decomp-icon { width: 18px; height: 18px; border-radius: 50%; border: 1px solid var(--border); background: var(--bg-card); display: grid; place-items: center; font-size: 0.52rem; z-index: 2; }
+.decomp-text-wrap { display: flex; flex-direction: column; }
+.decomp-task-title { font-size: 0.74rem; font-weight: 600; color: var(--text-main); }
+.decomp-task-xp { font-size: 0.62rem; color: var(--text-muted); }
+
+.mock-layer.active .decomp-row.row-1 { opacity: 1; transform: none; transition-delay: 0.4s; }
+.mock-layer.active .decomp-row.row-1 .decomp-icon { background: var(--success); border-color: var(--success); color: #fff; }
+.mock-layer.active .decomp-row.row-2 { opacity: 1; transform: none; transition-delay: 1s; }
+.mock-layer.active .decomp-row.row-2 .decomp-icon { background: var(--success); border-color: var(--success); color: #fff; }
+.mock-layer.active .decomp-row.row-3 { opacity: 1; transform: none; transition-delay: 1.6s; }
+
+/* --- Mimicked Streaks & Habits view --- */
+.streak-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 10px 12px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.01);
+  transition: background-color 0.4s;
+}
+.streak-flame {
+  font-size: 1.3rem;
+  width: 36px; height: 36px; border-radius: 8px;
+  display: flex; align-items: center; justify-content: center;
+  background: rgba(245, 158, 11, 0.08); flex-shrink: 0;
+}
+.streak-count-box { display: flex; flex-direction: column; align-items: center; min-width: 38px; }
+.streak-count { font-size: 1.3rem; font-weight: 900; letter-spacing: -0.04em; color: var(--warning); line-height: 1; }
+.streak-count-lbl { font-size: 0.58rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.02em; }
+.streak-info { flex: 1; min-width: 0; }
+.streak-name { font-weight: 700; font-size: 0.82rem; color: var(--text-main); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.streak-meta { font-size: 0.68rem; color: var(--text-muted); margin-top: 1px; }
+.streak-checkin-btn {
+  padding: 4px 8px; border-radius: 6px; border: 1px solid var(--success); background: rgba(16,185,129,0.04); color: var(--success); font-weight: 700; font-size: 0.7rem;
+}
+
+.level-up-profile {
+  display: flex; align-items: center; gap: 8px; background: rgba(59, 130, 246, 0.03); border: 1px dashed rgba(59, 130, 246, 0.2); border-radius: 10px; padding: 8px; position: relative;
+}
+.level-up-progress-wrap { flex: 1; display: flex; flex-direction: column; gap: 2px; }
+.level-up-progress-label { display: flex; justify-content: space-between; font-size: 0.62rem; font-weight: 800; color: var(--text-muted); }
+.level-up-progress-bar { width: 100%; height: 4px; background: rgba(0,0,0,0.05); border-radius: 10px; overflow: hidden; }
+[data-theme="dark"] .level-up-progress-bar { background: rgba(255,255,255,0.08); }
+.level-up-progress-fill { height: 100%; width: 55%; background: var(--grad); border-radius: 10px; transition: width 1.5s var(--ease); }
+.mock-layer.active .level-up-progress-fill { width: 92%; transition-delay: 0.4s; }
+
+.level-up-popup-alert {
+  position: absolute; inset: 0; background: rgba(255,255,255,0.92); border-radius: 10px; display: grid; place-items: center; opacity: 0; transform: scale(0.92); transition: opacity 0.4s, transform 0.4s cubic-bezier(.34,1.56,.64,1);
+}
+[data-theme="dark"] .level-up-popup-alert { background: rgba(30, 41, 59, 0.95); }
+.mock-layer.active .level-up-popup-alert { opacity: 1; pointer-events: auto; transform: none; transition-delay: 1.8s; }
+.level-up-alert-inner h4 { font-size: 0.88rem; font-weight: 900; background: var(--grad); -webkit-background-clip: text; background-clip: text; color: transparent; margin-bottom: 2px; }
+.level-up-alert-inner p { font-size: 0.65rem; color: var(--text-muted); }
+
+/* --- Mimicked AI Chat Assistant (Direct layout of flow.html's aiPage) --- */
+.ai-chat-layout-bezel {
+  display: flex;
+  flex: 1;
+  height: 100%;
+  gap: 8px;
+  overflow: hidden;
+}
+.ai-chat-sidebar-bezel {
+  width: 100px;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  transition: background-color 0.4s, border-color 0.4s;
+}
+.ai-chat-sidebar-title-bezel {
+  font-size: 0.62rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  letter-spacing: 0.05em;
+  margin-bottom: 4px;
+}
+.ai-chats-list-item {
+  padding: 6px;
+  background: var(--bg-app);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  font-size: 0.65rem;
+  font-weight: 700;
+  color: var(--text-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  transition: background-color 0.4s;
+}
+.ai-chats-list-item.active {
+  background: rgba(59, 130, 246, 0.08);
+  border-color: rgba(59, 130, 246, 0.2);
+  color: var(--primary);
+}
+
+.ai-chat-container-bezel {
+  flex: 1;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  transition: background-color 0.4s, border-color 0.4s;
+}
+.ai-chat-header-bezel {
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--border);
+  background: var(--bg-app);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  transition: background-color 0.4s, border-color 0.4s;
+}
+.ai-chat-header-title-bezel {
+  font-weight: 700;
+  font-size: 0.76rem;
+  color: var(--text-main);
+}
+.ai-chat-header-meta-bezel {
+  font-size: 0.62rem;
+  color: var(--text-muted);
+}
+.ai-chat-context-dropdown {
+  padding: 2px 6px;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  font-size: 0.62rem;
+  background: var(--bg-card);
+  color: var(--text-main);
+}
+
+.ai-chat-messages-bezel {
+  flex: 1;
+  overflow-y: auto;
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.ai-message-group {
+  display: flex;
+  gap: 8px;
+  align-items: flex-end;
+}
+.ai-message-group.user {
+  flex-direction: row-reverse;
+}
+.ai-message-avatar {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 0.72rem;
+  flex-shrink: 0;
+}
+.ai-message-avatar.assistant {
+  background: rgba(59, 130, 246, 0.12);
+  color: var(--primary);
+}
+.ai-message-avatar.user {
+  background: var(--primary);
+  color: white;
+}
+.ai-message-bubble {
+  max-width: 80%;
+  padding: 8px 12px;
+  border-radius: 10px;
+  word-wrap: break-word;
+  line-height: 1.4;
+  font-size: 0.74rem;
+}
+.ai-message-bubble.assistant {
+  background: rgba(59, 130, 246, 0.08);
+  color: var(--text-main);
+  border: 1px solid rgba(59, 130, 246, 0.15);
+}
+.ai-message-bubble.user {
+  background: var(--primary);
+  color: white;
+}
+.ai-message-time {
+  font-size: 0.58rem;
+  color: var(--text-muted);
+  margin-top: 2px;
+}
+
+.ai-chat-input-area-bezel {
+  padding: 8px 12px;
+  border-top: 1px solid var(--border);
+  background: var(--bg-app);
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  transition: background-color 0.4s, border-color 0.4s;
+}
+.ai-chat-input-bezel {
+  flex: 1;
+  padding: 6px 10px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--bg-card);
+  color: var(--text-main);
+  font-size: 0.72rem;
+  transition: background-color 0.4s, border-color 0.4s;
+}
+.ai-chat-send-btn-bezel {
+  padding: 6px 10px;
+  background: var(--primary);
+  color: white;
+  border-radius: 6px;
+  font-size: 0.72rem;
+  font-weight: 700;
+}
+
+/* ============================= BENTO GRID ============================= */
+section{padding:110px 0;position:relative}
+.sec-head{text-align:center;max-width:700px;margin:0 auto 64px}
+.kicker{display:inline-block;font-size:.8rem;font-weight:700;letter-spacing:.22em;text-transform:uppercase;color:var(--primary);margin-bottom:14px;padding:6px 16px;border:1px solid var(--border);border-radius:99px;background:rgba(59, 130, 246, 0.05)}
+.sec-head h2{font-size:clamp(1.9rem,4vw,2.8rem);font-weight:800;letter-spacing:-.02em;line-height:1.2;color:var(--text-main)}
+.sec-head p{color:var(--text-muted);margin-top:14px;font-size:1.05rem}
+
+/* reveal-on-scroll */
+.reveal{opacity:0;transform:translateY(46px);transition:opacity .9s var(--ease),transform .9s var(--ease)}
+.reveal.in{opacity:1;transform:none}
+.reveal.from-left{transform:translateX(-60px)}
+.reveal.from-right{transform:translateX(60px)}
+.reveal.zoom{transform:scale(.86)}
+.reveal.in{transform:none}
+
+/* Feature Bento grid */
+.bento{display:grid;grid-template-columns:repeat(6,1fr);gap:18px}
+.bento .cell{background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius);padding:30px;position:relative;overflow:hidden;transition:transform .4s var(--ease),border-color .4s;backdrop-filter:blur(10px);box-shadow:0 4px 20px rgba(0,0,0,0.01)}
+[data-theme="dark"] .bento .cell{box-shadow:0 4px 20px rgba(0,0,0,0.15)}
+.bento .cell:hover{transform:translateY(-6px);border-color:var(--primary)}
+.bento .cell::before{content:"";position:absolute;inset:0;background:radial-gradient(420px circle at var(--mx,50%) var(--my,50%),rgba(59,130,246,.06),transparent 60%);opacity:0;transition:opacity .4s}
+.bento .cell:hover::before{opacity:1}
+.cell.w3{grid-column:span 3}.cell.w2{grid-column:span 2}.cell.w4{grid-column:span 4}
+.cell .ico{width:46px;height:46px;border-radius:13px;display:grid;place-items:center;font-size:1.3rem;margin-bottom:18px;animation:icoFloat 4s ease-in-out infinite}
+@keyframes icoFloat{0%,100%{transform:translateY(0)}50%{transform:translateY(-6px)}}
+.cell:nth-child(2) .ico{animation-delay:.5s}.cell:nth-child(3) .ico{animation-delay:1s}
+.cell:nth-child(4) .ico{animation-delay:1.5s}.cell:nth-child(5) .ico{animation-delay:2s}
+.cell h4{font-size:1.1rem;font-weight:700;margin-bottom:8px;color:var(--text-main)}
+.cell p{color:var(--text-muted);font-size:.92rem;line-height:1.6}
+
+/* ============================= MATRIX SECTION ============================= */
+.matrix-wrapper{max-width:960px;margin:0 auto;background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;backdrop-filter:blur(12px);box-shadow:0 10px 30px rgba(0,0,0,0.02)}
+[data-theme="dark"] .matrix-wrapper{box-shadow:0 10px 30px rgba(0,0,0,0.2)}
+.matrix-table{width:100%;border-collapse:collapse;text-align:left}
+.matrix-table th, .matrix-table td{padding:20px 24px;border-bottom:1px solid var(--border)}
+.matrix-table th{font-size:.85rem;font-weight:800;letter-spacing:.05em;text-transform:uppercase;color:var(--text-muted);background:var(--bg-app)}
+.matrix-table tr:last-child td{border-bottom:none}
+.matrix-table td.feature-title{font-weight:700;color:var(--text-main)}
+.matrix-table td.feature-title p{font-size:.82rem;font-weight:400;color:var(--text-muted);margin-top:4px}
+.matrix-table td.col-other{color:var(--text-muted);font-size:.9rem}
+.matrix-table td.col-flow{color:var(--text-main);font-weight:700;background:rgba(59, 130, 246, 0.02)}
+.matrix-table tr:hover td.col-flow{background:rgba(59, 130, 246, 0.04)}
+.badge-no{color:var(--danger);display:inline-flex;align-items:center;gap:6px;font-size:.9rem}
+.badge-partial{color:var(--warning);display:inline-flex;align-items:center;gap:6px;font-size:.9rem}
+.badge-yes{color:var(--success);display:inline-flex;align-items:center;gap:6px;font-size:.9rem;font-weight:800}
+
+/* ============================= FAQ ============================= */
+.faq{max-width:760px;margin:0 auto}
+.faq-item{border:1px solid var(--border);border-radius:14px;background:var(--bg-card);margin-bottom:12px;overflow:hidden;transition:border-color .3s;box-shadow:0 4px 12px rgba(0,0,0,0.01)}
+[data-theme="dark"] .faq-item{box-shadow:0 4px 12px rgba(0,0,0,0.1)}
+.faq-item.open{border-color:var(--primary)}
+.faq-q{width:100%;display:flex;justify-content:space-between;align-items:center;gap:16px;padding:20px 24px;font-weight:700;font-size:1rem;text-align:left;color:var(--text-main)}
+.faq-q .plus{flex:none;width:26px;height:26px;border-radius:50%;border:1px solid var(--border);display:grid;place-items:center;font-size:1rem;color:var(--primary);transition:transform .4s var(--ease),background .3s}
+.faq-item.open .plus{transform:rotate(135deg);background:rgba(59, 130, 246, 0.1)}
+.faq-a{max-height:0;overflow:hidden;transition:max-height .5s var(--ease)}
+.faq-a p{padding:0 24px 22px;color:var(--text-muted);font-size:.95rem;line-height:1.6}
+
+/* ============================= CTA & FOOTER ============================= */
+.cta-box{position:relative;text-align:center;padding:90px 40px;border-radius:30px;overflow:hidden;background:var(--bg-card);border:1px solid var(--border);box-shadow:0 15px 40px rgba(0,0,0,.02)}
+[data-theme="dark"] .cta-box { box-shadow:0 15px 40px rgba(0,0,0,.2) }
+.cta-box::before{content:"";position:absolute;inset:-60%;background:conic-gradient(from 0deg,var(--c1),var(--c2),var(--c3),var(--c5),var(--c4),var(--c1));animation:rot 14s linear infinite;opacity:.06;filter:blur(60px);pointer-events:none}
+@keyframes rot{to{transform:rotate(360deg)}}
+.cta-box>*{position:relative}
+.cta-box h2{font-size:clamp(2rem,4.6vw,3.2rem);font-weight:800;letter-spacing:-.02em;color:var(--text-main)}
+.cta-box p{color:var(--text-muted);margin:16px auto 34px;max-width:540px;font-size:1.05rem}
+footer{border-top:1px solid var(--border);padding:70px 0 36px;background:var(--bg-card);transition: background-color 0.4s}
+.foot-grid{display:grid;grid-template-columns:2fr repeat(3,1fr);gap:40px;margin-bottom:50px}
+.foot-logo{margin-bottom:16px}
+.foot-tag{color:var(--text-muted);font-size:.9rem;margin-top:14px;max-width:280px}
+.foot-col h5{font-size:.85rem;font-weight:800;letter-spacing:.05em;text-transform:uppercase;color:var(--text-main);margin-bottom:18px}
+.foot-col ul{list-style:none}
+.foot-col li{margin-bottom:10px}
+.foot-col a{font-size:.9rem;color:var(--text-muted);transition:.2s}
+.foot-col a:hover{color:var(--text-main)}
+.foot-bottom{display:flex;justify-content:space-between;align-items:center;padding-top:26px;border-top:1px solid var(--border);color:var(--text-muted);font-size:.84rem;flex-wrap:wrap;gap:12px}
+.heart{display:inline-block;color:var(--c3);animation:beat 1.4s ease infinite}
+@keyframes beat{0%,100%{transform:scale(1)}25%{transform:scale(1.25)}}
+
+/* ============================= RESPONSIVE ============================= */
+@media(max-width:960px){
+  .scroller-layout{flex-direction:column;justify-content:center;padding:0 24px;gap:40px}
+  .scroll-left-cards{width:100%}
+  .scroll-step{position:relative;opacity:1 !important;transform:none !important;filter:none !important;pointer-events:auto;height:auto;margin-bottom:40px;top:0 !important}
+  .scroll-right-sticky{width:100%;height:460px;position:relative;top:0}
+  .step-nav-dots{display:none}
+  .bento{grid-template-columns:repeat(2,1fr)}
+  .cell.w2,.cell.w3,.cell.w4{grid-column:span 2}
+  .foot-grid{grid-template-columns:1fr 1fr}
+  .nav-links{display:none}
+  .orbit-zone{height:250px}
+  .ring-2{width:330px;height:330px}
+  .ring-2 .sat.s1{top:-32px;left:calc(50% - 32px)}
+  .ring-2 .sat.s2{bottom:15px;left:5px}
+  .ring-2 .sat.s3{bottom:15px;right:5px}
+}
+@media(max-width:640px){
+  .bento{grid-template-columns:1fr}
+  .cell.w2,.cell.w3,.cell.w4{grid-column:span 1}
+  .foot-grid{grid-template-columns:1fr}
+  .nav-inner{padding:14px 16px;gap:14px}
+  .logo span{font-size:.9rem}
+}
+</style>
+</head>
+<body>
+
+<!-- GLOBAL SVG ASSETS -->
+<svg style="display:none">
+  <defs>
+    <!-- Simple Chibbit Space standard gradients -->
+    <linearGradient id="scGrad" x1="0%" y1="100%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#3b82f6"/>
+      <stop offset="40%" stop-color="#8b5cf6"/>
+      <stop offset="75%" stop-color="#ec4899"/>
+      <stop offset="100%" stop-color="#f59e0b"/>
+    </linearGradient>
+    <linearGradient id="scGlass" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="rgba(255,255,255,.32)"/>
+      <stop offset="60%" stop-color="rgba(255,255,255,0)"/>
+    </linearGradient>
+    
+    <!-- Flow Infinity Logo -->
+    <symbol id="sc-flow-logo" viewBox="0 0 64 64">
+      <rect x="2" y="2" width="60" height="60" rx="16" fill="url(#scGrad)"/>
+      <rect x="3.2" y="3.2" width="57.6" height="57.6" rx="14.8" fill="none" stroke="url(#scGlass)" stroke-width="1.6" opacity=".9"/>
+      <rect x="2" y="2" width="60" height="30" rx="16" fill="url(#scGlass)" opacity=".5"/>
+      <path d="M 32 32 C 23 20, 14 20, 14 32 C 14 44, 23 44, 32 32 C 41 20, 50 20, 50 32 C 50 44, 41 44, 32 32 Z" fill="none" stroke="#fff" stroke-width="4.8" stroke-linecap="round" stroke-linejoin="round"/>
+      <circle r="3" fill="#fff">
+        <animateMotion dur="4.2s" repeatCount="indefinite" path="M 32 32 C 23 20, 14 20, 14 32 C 14 44, 23 44, 32 32 C 41 20, 50 20, 50 32 C 50 44, 41 44, 32 32 Z"/>
+      </circle>
+    </symbol>
+  </defs>
+</svg>
+
+<div id="progress"></div>
+<canvas id="bg-canvas"></canvas>
+<div class="grain"></div>
+
+<!-- ============ NAVIGATION ============ -->
+<nav id="nav">
+  <div class="nav-inner">
+    <div class="nav-links">
+      <a href="#flow-showcase">The Flow Engine</a>
+      <a href="#features">Integrated Features</a>
+      <a href="#matrix">Comparison</a>
+      <a href="#faq">FAQ</a>
+    </div>
+    
+    <button class="theme-toggle" id="themeToggle" title="Toggle Theme" style="margin-left: auto;">🌙</button>
+    <a class="btn btn-ghost" href="#login" style="margin-left:10px">Sign in</a>
+    <a class="btn btn-primary" href="#start" style="margin-left:10px">Try sc.flow Free <span class="shine"></span></a>
+  </div>
+</nav>
+
+<!-- ============ HERO SECTION ============ -->
+<header id="top">
+  <div class="wrap">
+    <div class="eyebrow">
+      <span class="dot"></span>
+      <span>COGNITIVE FLOW STATE ENGINE</span>
+    </div>
+    
+    <h1>
+      <span class="word" style="animation-delay: 0.1s">Where</span>
+      <span class="word" style="animation-delay: 0.2s">your</span>
+      <span class="word" style="animation-delay: 0.3s">tasks</span>
+      <span class="word grad-txt" style="animation-delay: 0.4s">flow</span>
+      <span class="word" style="animation-delay: 0.5s">on</span>
+      <span class="word grad-txt" style="animation-delay: 0.6s">autopilot.</span>
+    </h1>
+    
+    <p class="hero-sub">
+      Break free from manual tracking. sc.flow is a collaborative, gamified workspace driven by autonomous agentic AI. Break down massive projects, sync calendars, level up productivity, and let automated agents work on autopilot.
+    </p>
+    
+    <div class="hero-cta">
+      <a class="btn btn-primary" href="#flow-showcase">Step Into The Flow <span class="shine"></span></a>
+      <a class="btn btn-ghost" href="#matrix">See Comparison ⚡</a>
+    </div>
+
+</header>
+
+<!-- ============ STICKY SCROLLER SECTION ============ -->
+<div class="scroller-head">
+  <div class="wrap">
+    <span class="kicker">Why sc.flow?</span>
+    <h2>The productivity gap is real.</h2>
+  </div>
+</div>
+
+<section id="flow-showcase" class="scroll-zone">
+  <div class="scroller-layout">
+    
+    <!-- LEFT SIDE: ANIMATED STACKING CARDS -->
+    <div class="scroll-left-cards">
+      
+      <!-- CARD 1: KANBAN -->
+      <div class="scroll-step active" data-index="0" style="--i: 0; --p-target: 88%">
+        <div>
+          <div class="step-kicker">
+            <span class="step-circle">1</span> Visual Task Views
+          </div>
+          <div class="stat-box">
+            <div class="num">Only <span class="counter" data-from="0" data-to="85">85</span>% to <span class="counter" data-from="0" data-to="90">90</span>%</div>
+            <p style="font-size:0.72rem; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.05em; font-weight: 700">of trackers have Kanban boards</p>
+            <div class="stat-bar-track">
+              <div class="stat-bar-fill"></div>
+            </div>
+          </div>
+          <p class="step-desc">
+            Most project managers stop at linear lists. <b>Only 85% to 90%</b> provide visual Kanban views that let teams conceptualize workloads. 
+          </p>
+        </div>
+        <div class="advantage-card">
+          <div class="advantage-head">
+            <span class="chk-flow">✓</span>
+            <div><span>sc.flow has it.</span></div>
+          </div>
+          <p>And we perfected it. Get beautiful, highly fluid cards, real-time column transitions, customizable swimlanes, and immediate synchronization across all device mockups.</p>
+        </div>
+      </div>
+
+      <!-- CARD 2: CALENDAR -->
+      <div class="scroll-step" data-index="1" style="--i: 1; --p-target: 78%">
+        <div>
+          <div class="step-kicker">
+            <span class="step-circle">2</span> Dynamic Scheduling
+          </div>
+          <div class="stat-box">
+            <div class="num">Only <span class="counter" data-from="0" data-to="75">75</span>% to <span class="counter" data-from="0" data-to="80">80</span>%</div>
+            <p style="font-size:0.72rem; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.05em; font-weight: 700">have calendar integration</p>
+            <div class="stat-bar-track">
+              <div class="stat-bar-fill"></div>
+            </div>
+          </div>
+          <p class="step-desc">
+            Disconnected deadlines lead to missed schedules. <b>Only 75% to 80%</b> of trackers bridge the gap between tasks and calendars.
+          </p>
+        </div>
+        <div class="advantage-card">
+          <div class="advantage-head">
+            <span class="chk-flow">✓</span>
+            <div><span>sc.flow has it.</span></div>
+          </div>
+          <p>Sync tasks with interactive, beautifully structured timetables. Drag items directly into schedule slots with seamless two-way Google Calendar and Outlook integrations.</p>
+        </div>
+      </div>
+
+      <!-- CARD 3: AI DECOMPOSITION -->
+      <div class="scroll-step" data-index="2" style="--i: 2; --p-target: 40%">
+        <div>
+          <div class="step-kicker">
+            <span class="step-circle">3</span> Generative Breakdown
+          </div>
+          <div class="stat-box">
+            <div class="num">Only <span class="counter" data-from="0" data-to="35">35</span>% to <span class="counter" data-from="0" data-to="45">45</span>%</div>
+            <p style="font-size:0.72rem; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.05em; font-weight: 700">provide AI Decomposition</p>
+            <div class="stat-bar-track">
+              <div class="stat-bar-fill"></div>
+            </div>
+          </div>
+          <p class="step-desc">
+            Manually writing tasks wastes valuable creative energy. <b>Only 35% to 45%</b> of modern platforms offer smart task generation.
+          </p>
+        </div>
+        <div class="advantage-card">
+          <div class="advantage-head">
+            <span class="chk-flow">✓</span>
+            <div><span>sc.flow has it.</span></div>
+          </div>
+          <p>Type in a grand objective, and watch simple.ai auto-slice it into estimated, manageable subtasks connected by responsive digital connections in seconds.</p>
+        </div>
+      </div>
+
+      <!-- CARD 4: GAMIFICATION -->
+      <div class="scroll-step" data-index="3" style="--i: 3; --p-target: 12%">
+        <div>
+          <div class="step-kicker">
+            <span class="step-circle">4</span> RPG Mechanics
+          </div>
+          <div class="stat-box">
+            <div class="num">Only <span class="counter" data-from="0" data-to="10">10</span>% to <span class="counter" data-from="0" data-to="15">15</span>%</div>
+            <p style="font-size:0.72rem; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.05em; font-weight: 700">integrate gamification</p>
+            <div class="stat-bar-track">
+              <div class="stat-bar-fill"></div>
+            </div>
+          </div>
+          <p class="step-desc">
+            Work doesn't have to be boring. Yet, <b>only 10% to 15%</b> of tracking utilities offer gamified rewards to maintain drive and momentum.
+          </p>
+        </div>
+        <div class="advantage-card">
+          <div class="advantage-head">
+            <span class="chk-flow">✓</span>
+            <div><span>sc.flow has it.</span></div>
+          </div>
+          <p>Unlock achievements, complete daily focus quests, build multiplier streaks, and gain XP to level up your workspace. Experience productivity as an engaging RPG.</p>
+        </div>
+      </div>
+
+      <!-- CARD 5: AGENTIC AI -->
+      <div class="scroll-step" data-index="4" style="--i: 4; --p-target: 7%">
+        <div>
+          <div class="step-kicker">
+            <span class="step-circle">5</span> Autonomous Execution
+          </div>
+          <div class="stat-box">
+            <div class="num">Only <span class="counter" data-from="0" data-to="5">5</span>% to <span class="counter" data-from="0" data-to="10">10</span>%</div>
+            <p style="font-size:0.72rem; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.05em; font-weight: 700">feature Agentic AI</p>
+            <div class="stat-bar-track">
+              <div class="stat-bar-fill"></div>
+            </div>
+          </div>
+          <p class="step-desc">
+            Suggestions are neat, but actual execution is king. <b>Only 5% to 10%</b> of tools feature autonomous agents that do work for you.
+          </p>
+        </div>
+        <div class="advantage-card">
+          <div class="advantage-head">
+            <span class="chk-flow">✓</span>
+            <div><span>sc.flow has it.</span></div>
+          </div>
+          <p>True autonomous agents. Integrates directly with sc.forge to compile scripts, run automated checks, refactor code snippets, and close tickets on autopilot while you sleep.</p>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- RIGHT SIDE: STICKY HIGH-FIDELITY APP MOCKUP BEZEL -->
+    <div class="scroll-right-sticky">
+      <div class="mock-shell">
+        <div class="mock-bar">
+          <i></i><i></i><i></i>
+          <span id="mock-panel-title">sc.flow — tasks view</span>
+        </div>
+        <div class="mock-app-layout">
+          
+          <!-- Mock Sidebar -->
+          <div class="mock-sidebar">
+            <div class="mock-logo">
+              <svg viewBox="0 0 64 64"><use href="#sc-flow-logo"/></svg>
+            </div>
+            <div class="mock-nav-item active" data-id="0" title="Tasks Board">📋</div>
+            <div class="mock-nav-item" data-id="1" title="Calendar schedule">📅</div>
+            <div class="mock-nav-item" data-id="2" title="Projects breaking">🧠</div>
+            <div class="mock-nav-item" data-id="3" title="Achievements & Habits">🏆</div>
+            <div class="mock-nav-item" data-id="4" title="AI Agent Console">🤖</div>
+          </div>
+          
+          <!-- Mock content windows (Direct High-Fidelity mimics of flow.html layout) -->
+          <div class="mock-content">
+            
+            <!-- LAYER 1: KANBAN BOARD -->
+            <div class="mock-layer active" data-index="0">
+              <div class="mock-page-title">
+                <span>Tasks</span>
+                <div style="display:flex; gap:4px">
+                  <button class="view-toggle-btn">List</button>
+                  <button class="view-toggle-btn active">Board</button>
+                </div>
+              </div>
+              <div class="mock-page-subtitle">Standard list columns synced seamlessly</div>
+              
+              <div class="kanban-wrapper">
+                <div class="kanban-col">
+                  <h5>To Do <span>2</span></h5>
+                  <div class="kanban-drop-zone">
+                    <div class="kanban-task-card">
+                      <div class="kanban-task-card-top">
+                        <div class="task-checkbox"></div>
+                        <div class="kanban-task-card-body">
+                          <div class="kanban-task-name">Onboarding Redesign</div>
+                          <div class="kanban-task-subtitle">Polish frame layouts</div>
+                        </div>
+                      </div>
+                      <div class="kanban-task-meta">
+                        <span class="priority-badge high">High</span>
+                      </div>
+                    </div>
+                    <div class="kanban-task-card">
+                      <div class="kanban-task-card-top">
+                        <div class="task-checkbox"></div>
+                        <div class="kanban-task-card-body">
+                          <div class="kanban-task-name">Update API Docs</div>
+                        </div>
+                      </div>
+                      <div class="kanban-task-meta">
+                        <span class="priority-badge low">Low</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                
+                <div class="kanban-col">
+                  <h5>In Progress <span>2</span></h5>
+                  <div class="kanban-drop-zone">
+                    <!-- This task card is animated to drift to 'Done' column and check off -->
+                    <div class="kanban-task-card moving-card">
+                      <div class="kanban-task-card-top">
+                        <div class="task-checkbox"></div>
+                        <div class="kanban-task-card-body">
+                          <div class="kanban-task-name">Automate DB Backup</div>
+                          <div class="kanban-task-subtitle">Write cron deployment</div>
+                        </div>
+                      </div>
+                      <div class="kanban-task-meta">
+                        <span class="priority-badge medium">Medium</span>
+                      </div>
+                    </div>
+                    <div class="kanban-task-card">
+                      <div class="kanban-task-card-top">
+                        <div class="task-checkbox"></div>
+                        <div class="kanban-task-card-body">
+                          <div class="kanban-task-name">Integrate Calendar</div>
+                        </div>
+                      </div>
+                      <div class="kanban-task-meta">
+                        <span class="priority-badge high">High</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                
+                <div class="kanban-col">
+                  <h5>Done <span>1</span></h5>
+                  <div class="kanban-drop-zone">
+                    <div class="kanban-task-card" style="opacity: 0.7;">
+                      <div class="kanban-task-card-top">
+                        <div class="task-checkbox" style="background:var(--success); border-color:var(--success)">✓</div>
+                        <div class="kanban-task-card-body">
+                          <div class="kanban-task-name" style="text-decoration:line-through; color:var(--text-muted)">Global Dark Theme</div>
+                        </div>
+                      </div>
+                      <div class="kanban-task-meta">
+                        <span class="priority-badge low">Low</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- LAYER 2: CALENDAR SCHEDULE -->
+            <div class="mock-layer" data-index="1">
+              <div class="mock-page-title">
+                <span>Calendar</span>
+                <span style="font-size:0.76rem; font-weight:700; color:var(--primary)">July 2026</span>
+              </div>
+              <div class="mock-page-subtitle">Integrate timetables with interactive monthly calendars</div>
+              
+              <div class="calendar-header-week">
+                <span>Mon</span><span>Tue</span><span>Wed</span><span>Thu</span><span>Fri</span><span>Sat</span><span>Sun</span>
+              </div>
+              
+              <div class="calendar-grid-bezel">
+                <div class="calendar-cell-bezel other-month"><span class="calendar-cell-num">29</span></div>
+                <div class="calendar-cell-bezel other-month"><span class="calendar-cell-num">30</span></div>
+                <div class="calendar-cell-bezel"><span class="calendar-cell-num">1</span></div>
+                <div class="calendar-cell-bezel"><span class="calendar-cell-num">2</span><span class="calendar-item-chip timetable">Work out</span></div>
+                <div class="calendar-cell-bezel"><span class="calendar-cell-num">3</span></div>
+                <div class="calendar-cell-bezel"><span class="calendar-cell-num">4</span></div>
+                <div class="calendar-cell-bezel"><span class="calendar-cell-num">5</span></div>
+
+                <div class="calendar-cell-bezel"><span class="calendar-cell-num">6</span></div>
+                <div class="calendar-cell-bezel"><span class="calendar-cell-num">7</span></div>
+                <div class="calendar-cell-bezel"><span class="calendar-cell-num">8</span><span class="calendar-item-chip task high">Deploy Code</span></div>
+                <div class="calendar-cell-bezel"><span class="calendar-cell-num">9</span></div>
+                <div class="calendar-cell-bezel"><span class="calendar-cell-num">10</span></div>
+                <div class="calendar-cell-bezel"><span class="calendar-cell-num">11</span></div>
+                <div class="calendar-cell-bezel today">
+                  <span class="calendar-cell-num today-num">12</span>
+                  <span class="calendar-item-chip event">Team Sync</span>
+                  <span class="calendar-item-chip timetable">Focus block</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- LAYER 3: PROJECT DECOMPOSITION -->
+            <div class="mock-layer" data-index="2">
+              <div class="mock-page-title">Projects</div>
+              <div class="mock-page-subtitle">Automatic project deconstruction with AI estimates</div>
+              
+              <div class="project-card">
+                <div class="project-card-header">
+                  <div>
+                    <div class="project-card-title">Release iOS Mobile App</div>
+                    <div class="project-card-desc">AI-Estimated task list and timeline mapping</div>
+                  </div>
+                </div>
+                <div class="progress-container">
+                  <div class="progress-bar"><div class="progress-fill"></div></div>
+                  <div class="progress-text">2 of 3 steps (66%)</div>
+                </div>
+              </div>
+              
+              <div class="decomp-subtasks">
+                <div class="decomp-row row-1">
+                  <div class="decomp-icon">✓</div>
+                  <div class="decomp-text-wrap">
+                    <span class="decomp-task-title" style="text-decoration:line-through; opacity:0.7">Generate App Launch Assets</span>
+                    <span class="decomp-task-xp">Completed • +60 XP earned</span>
+                  </div>
+                </div>
+                <div class="decomp-row row-2">
+                  <div class="decomp-icon">✓</div>
+                  <div class="decomp-text-wrap">
+                    <span class="decomp-task-title" style="text-decoration:line-through; opacity:0.7">Compile Release iOS Binary</span>
+                    <span class="decomp-task-xp">Completed • +40 XP earned</span>
+                  </div>
+                </div>
+                <div class="decomp-row row-3">
+                  <div class="decomp-icon">🕒</div>
+                  <div class="decomp-text-wrap">
+                    <span class="decomp-task-title" style="font-weight:700">App Store Description & Submission draft</span>
+                    <span class="decomp-task-xp">Pending AI Sync • +50 XP on completion</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- LAYER 4: GAMIFICATION STREAKS -->
+            <div class="mock-layer" data-index="3">
+              <div class="mock-page-title">Habits & Streaks</div>
+              <div class="mock-page-subtitle">Gamified rewards for building consistent flow habits</div>
+              
+              <div class="level-up-profile">
+                <div class="game-avatar" style="font-size:1.1rem; width:32px; height:32px; border-radius:50%; background:rgba(59,130,246,0.1); border:1px solid var(--primary); display:grid; place-items:center;">🏆</div>
+                <div class="level-up-progress-wrap">
+                  <div class="level-up-progress-label">
+                    <span>LEVEL 14 FLOWMASTER</span>
+                    <span>850 / 1000 XP</span>
+                  </div>
+                  <div class="level-up-progress-bar">
+                    <div class="level-up-progress-fill"></div>
+                  </div>
+                </div>
+                <!-- Interactive Holographic level-up banner -->
+                <div class="level-up-popup-alert">
+                  <div class="level-up-alert-inner">
+                    <h4>LEVEL UP! 🎉</h4>
+                    <p>You reached Level 15! Unlocked +10% Auto Agent efficiency.</p>
+                  </div>
+                </div>
+              </div>
+
+              <div style="display:flex; flex-direction:column; gap:6px; flex:1; justify-content:center;">
+                <div class="streak-card">
+                  <div class="streak-flame">🔥</div>
+                  <div class="streak-count-box">
+                    <span class="streak-count">7</span>
+                    <span class="streak-count-lbl">days</span>
+                  </div>
+                  <div class="streak-info">
+                    <div class="streak-name">Study Focus Sessions</div>
+                    <div class="streak-meta">Done for today ✓</div>
+                  </div>
+                  <button class="streak-checkin-btn" disabled>✓ Done</button>
+                </div>
+                
+                <div class="streak-card">
+                  <div class="streak-flame" style="background:rgba(59,130,246,0.08)">💻</div>
+                  <div class="streak-count-box">
+                    <span class="streak-count" style="color:var(--primary)">12</span>
+                    <span class="streak-count-lbl">days</span>
+                  </div>
+                  <div class="streak-info">
+                    <div class="streak-name">Write Daily Code Snippets</div>
+                    <div class="streak-meta">Last check-in: yesterday</div>
+                  </div>
+                  <button class="streak-checkin-btn" style="border-color:var(--primary); color:var(--primary)">+ Check in</button>
+                </div>
+              </div>
+            </div>
+
+            <!-- LAYER 5: AGENTIC AI CHAT (Direct mimic of flow.html's aiPage) -->
+            <div class="mock-layer" data-index="4">
+              <div class="ai-chat-layout-bezel">
+                
+                <!-- Chat sidebar -->
+                <div class="ai-chat-sidebar-bezel">
+                  <div class="ai-chat-sidebar-title-bezel">Chats</div>
+                  <div class="ai-chats-list-item active">✨ Task Optimizer</div>
+                  <div class="ai-chats-list-item">📅 Focus Blocks</div>
+                  <div class="ai-chats-list-item">🏆 Streaks Log</div>
+                </div>
+                
+                <!-- Chat window -->
+                <div class="ai-chat-container-bezel">
+                  <div class="ai-chat-header-bezel">
+                    <div>
+                      <div class="ai-chat-header-title-bezel">Task Flow Optimizer</div>
+                      <div class="ai-chat-header-meta-bezel">Powered by Chibbit AI</div>
+                    </div>
+                    <div>
+                      <select class="ai-chat-context-dropdown">
+                        <option>Tasks</option>
+                        <option>All</option>
+                      </select>
+                    </div>
+                  </div>
+                  
+                  <div class="ai-chat-messages-bezel">
+                    <!-- User message bubble -->
+                    <div class="ai-message-group user">
+                      <div class="ai-message-avatar user">U</div>
+                      <div>
+                        <div class="ai-message-bubble user">
+                          Chibbit, my task list is highly cluttered. Can you auto-organize and schedule my day?
+                        </div>
+                        <div class="ai-message-time" style="text-align:right">11:02 AM</div>
+                      </div>
+                    </div>
+                    
+                    <!-- Assistant response with typewriter task operations -->
+                    <div class="ai-message-group">
+                      <div class="ai-message-avatar assistant">AI</div>
+                      <div>
+                        <div class="ai-message-bubble assistant">
+                          <div style="font-weight:700; margin-bottom: 4px; color:var(--primary);">Chibbit Flow Assistant:</div>
+                          <div class="agent-terminal-logs" id="agent-terminal-logs" style="font-family:monospace; line-height: 1.4;">
+                            <!-- Auto-scheduling typed log operations will display here -->
+                          </div>
+                        </div>
+                        <div class="ai-message-time">11:03 AM</div>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <!-- Fake input bar -->
+                  <div class="ai-chat-input-area-bezel">
+                    <div class="ai-chat-input-bezel">Ask Chibbit AI to sort tasks...</div>
+                    <button class="ai-chat-send-btn-bezel">Send</button>
+                  </div>
+                  
+                </div>
+              </div>
+            </div>
+
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- DOTS INDICATOR FOR SECTIONS -->
+    <div class="step-nav-dots">
+      <div class="step-dot-container">
+        <div class="step-tooltip">Visual Kanban</div>
+        <i class="step-dot on" data-index="0"></i>
+      </div>
+      <div class="step-dot-container">
+        <div class="step-tooltip">Timetables</div>
+        <i class="step-dot" data-index="1"></i>
+      </div>
+      <div class="step-dot-container">
+        <div class="step-tooltip">AI Decomposition</div>
+        <i class="step-dot" data-index="2"></i>
+      </div>
+      <div class="step-dot-container">
+        <div class="step-tooltip">Gamification</div>
+        <i class="step-dot" data-index="3"></i>
+      </div>
+      <div class="step-dot-container">
+        <div class="step-tooltip">Agentic AI</div>
+        <i class="step-dot" data-index="4"></i>
+      </div>
+    </div>
+
+  </div>
+</section>
+
+<!-- ============ CALL TO ACTION SECTION ============ -->
+<section style="padding-top:30px; padding-bottom:120px">
+  <div class="wrap">
+    <div class="cta-box reveal zoom">
+      <h2>Step into your flow state today.</h2>
+      <p>Join thousands of software designers, writers, developers, and builders inside sc.flow. It takes 30 seconds to sign up—let the AI do the heavy lifting.</p>
+      <div class="hero-cta">
+        <a class="btn btn-primary" href="#start">Try sc.flow Free <span class="shine"></span></a>
+        <a class="btn btn-ghost" href="#flow-showcase">Explore Features ⚡</a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ FOOTER ============ -->
+<footer>
+  <div class="wrap">
+    <div class="foot-grid">
+      <div class="foot-col">
+        <p class="foot-tag">
+          Part of Simple Chibbit Space.<br>
+          Simplifying your world, one app at a time.
+        </p>
+      </div>
+      
+      <div class="foot-col">
+        <h5>Product</h5>
+        <ul>
+          <li><a href="#flow-showcase">The Flow Engine</a></li>
+          <li><a href="#features">Features</a></li>
+          <li><a href="#matrix">Comparison</a></li>
+          <li><a href="#pricing">Pricing</a></li>
+        </ul>
+      </div>
+      
+      <div class="foot-col">
+        <h5>Ecosystem</h5>
+        <ul>
+          <li><a href="https://simple.ai">simple.ai</a></li>
+          <li><a href="https://sc.forge">sc.forge</a></li>
+          <li><a href="https://chibbit.space">Chibbit Space</a></li>
+        </ul>
+      </div>
+      
+      <div class="foot-col">
+        <h5>Legal & Security</h5>
+        <ul>
+          <li><a href="#privacy">Privacy Policy</a></li>
+          <li><a href="#terms">Terms of Service</a></li>
+          <li><a href="#vault">Vault Security</a></li>
+        </ul>
+      </div>
+    </div>
+    
+    <div class="foot-bottom">
+      <span>&copy; 2026 Simple Chibbit Space. All rights reserved.</span>
+      <span>Made with <span class="heart">&hearts;</span> by Chibbit Developers</span>
+    </div>
+  </div>
+</footer>
+
+<!-- ============ INTERACTIVE JAVASCRIPT ============ -->
+<script>
+/* ============================= LAVA FLOW BG CANVAS ============================= */
+(function(){
+  const c=document.getElementById('bg-canvas'),x=c.getContext('2d');
+  let W,H,orbs=[];
+  function size(){
+    W=c.width=innerWidth;H=c.height=innerHeight;
+    orbs=Array.from({length: 16}, () => ({
+      x: Math.random() * W,
+      y: Math.random() * H,
+      r: Math.random() * 90 + 45,
+      vx: (Math.random() - 0.5) * 0.3,
+      vy: (Math.random() - 0.5) * 0.3,
+      color: Math.random() > 0.5 ? 'rgba(59, 130, 246, 0.05)' : 'rgba(139, 92, 246, 0.05)',
+    }));
+  }
+  size();addEventListener('resize',size);
+  
+  (function draw(){
+    x.clearRect(0,0,W,H);
+    for(const o of orbs){
+      o.x += o.vx;
+      o.y += o.vy;
+      if (o.x < -o.r) o.x = W + o.r;
+      if (o.x > W + o.r) o.x = -o.r;
+      if (o.y < -o.r) o.y = H + o.r;
+      if (o.y > H + o.r) o.y = -o.r;
+      
+      const grad = x.createRadialGradient(o.x, o.y, 0, o.x, o.y, o.r);
+      grad.addColorStop(0, o.color);
+      grad.addColorStop(1, 'rgba(0,0,0,0)');
+      
+      x.fillStyle = grad;
+      x.beginPath();
+      x.arc(o.x, o.y, o.r, 0, Math.PI * 2);
+      x.fill();
+    }
+    requestAnimationFrame(draw);
+  })();
+})();
+
+/* ============================= NAV + PROGRESS ============================= */
+const nav=document.getElementById('nav'),prog=document.getElementById('progress');
+let currentTheme = localStorage.getItem('theme') || 'light';
+
+addEventListener('scroll',()=>{
+  nav.classList.toggle('scrolled',scrollY>40);
+  const h=document.documentElement;
+  prog.style.width=(scrollY/(h.scrollHeight-innerHeight)*100)+'%';
+},{passive:true});
+
+/* ============================= DARK / LIGHT THEME TOGGLE ============================= */
+(function(){
+  const btn = document.getElementById('themeToggle');
+  document.documentElement.setAttribute('data-theme', currentTheme);
+  btn.textContent = currentTheme === 'dark' ? '☀️' : '🌙';
+
+  btn.addEventListener('click', () => {
+    currentTheme = currentTheme === 'light' ? 'dark' : 'light';
+    document.documentElement.setAttribute('data-theme', currentTheme);
+    localStorage.setItem('theme', currentTheme);
+    btn.textContent = currentTheme === 'dark' ? '☀️' : '🌙';
+  });
+})();
+
+/* ============================= REVEAL ON SCROLL ============================= */
+const io=new IntersectionObserver(es=>{
+  es.forEach(e=>{ if(e.isIntersecting){ e.target.classList.add('in'); io.unobserve(e.target);} });
+},{threshold:.18});
+document.querySelectorAll('.reveal').forEach(el=>io.observe(el));
+
+/* ============================= FAQ ACCORDION ============================= */
+document.querySelectorAll('.faq-item').forEach(item=>{
+  const q=item.querySelector('.faq-q'),a=item.querySelector('.faq-a');
+  q.addEventListener('click',()=>{
+    const open=item.classList.contains('open');
+    document.querySelectorAll('.faq-item.open').forEach(o=>{
+      o.classList.remove('open');o.querySelector('.faq-a').style.maxHeight=0;
+    });
+    if(!open){item.classList.add('open');a.style.maxHeight=a.scrollHeight+'px';}
+  });
+});
+
+/* ============================= BENTO CURSOR GLOW ============================= */
+document.querySelectorAll('.bento .cell').forEach(cell=>{
+  cell.addEventListener('mousemove',e=>{
+    const r=cell.getBoundingClientRect();
+    cell.style.setProperty('--mx',(e.clientX-r.left)+'px');
+    cell.style.setProperty('--my',(e.clientY-r.top)+'px');
+  });
+});
+
+/* ============================= STICKY STACKING SCROLLER & MOCK LAYERS ============================= */
+let activeIndex = 0;
+let currentIdx = -1;
+let terminalTimeoutId = null;
+
+function animateNumber(el, start, end, duration) {
+  let startTimestamp = null;
+  const step = (timestamp) => {
+    if (!startTimestamp) startTimestamp = timestamp;
+    const progress = Math.min((timestamp - startTimestamp) / duration, 1);
+    const easeProgress = progress * (2 - progress); // Ease-out quad
+    const value = Math.floor(easeProgress * (end - start) + start);
+    el.textContent = value;
+    if (progress < 1) {
+      window.requestAnimationFrame(step);
+    } else {
+      el.textContent = end;
+    }
+  };
+  window.requestAnimationFrame(step);
+}
+
+function startTerminalLogs() {
+  const terminal = document.getElementById('agent-terminal-logs');
+  if (!terminal) return;
+  terminal.innerHTML = '';
+  
+  const lines = [
+    '🧠 [flow-ai] initializing task sorting engine...',
+    '🔍 [flow-ai] scanning active lists (8 incomplete tasks found)...',
+    '📊 [flow-ai] evaluating task weights and priorities...',
+    '📅 [flow-ai] checking Google Calendar for open focus blocks...',
+    '⚡ [flow-ai] scheduling high priority "Onboarding Redesign" to Monday 14:00',
+    '🕒 [flow-ai] rescheduling low priority "API Docs" to Tuesday morning...',
+    '🏆 [flow-ai] flow state optimization complete. +150 XP awarded! ✓'
+  ];
+  
+  if (terminalTimeoutId) clearTimeout(terminalTimeoutId);
+  
+  let i = 0;
+  function typeLine() {
+    if (i >= lines.length) return;
+    const div = document.createElement('div');
+    div.className = 'terminal-line';
+    div.style.opacity = '0';
+    div.style.transform = 'translateY(4px)';
+    div.style.transition = 'opacity 0.25s, transform 0.25s';
+    div.textContent = lines[i];
+    terminal.appendChild(div);
+    
+    // Force reflow
+    div.offsetHeight;
+    div.style.opacity = '1';
+    div.style.transform = 'none';
+    
+    terminal.scrollTop = terminal.scrollHeight;
+    i++;
+    terminalTimeoutId = setTimeout(typeLine, 800 + Math.random() * 600);
+  }
+  typeLine();
+}
+
+const titles = [
+  "sc.flow — tasks view",
+  "sc.flow — calendar schedule",
+  "sc.flow — projects breakdown",
+  "sc.flow — quests & streaks",
+  "sc.flow — flow assistant"
+];
+
+function handleScroll() {
+  const cards = document.querySelectorAll('.scroll-step');
+  const layers = document.querySelectorAll('.mock-layer');
+  const navItems = document.querySelectorAll('.mock-sidebar .mock-nav-item');
+  const dots = document.querySelectorAll('.step-nav-dots .step-dot');
+  const wrapper = document.querySelector('.scroller-layout');
+  
+  let activeIdx = 0;
+  
+  cards.forEach((card, i) => {
+    const rect = card.getBoundingClientRect();
+    // card is sticky at top: 140px + i * 20px
+    const pinPoint = 140 + i * 20;
+    
+    if (rect.top <= pinPoint + 10) {
+      activeIdx = i;
+    }
+  });
+  
+  activeIndex = activeIdx;
+  
+  // Set activeIndex custom variable on parent
+  if (wrapper) {
+    wrapper.style.setProperty('--activeIndex', activeIdx);
+  }
+  
+  // Toggle stacking classes on left side cards
+  cards.forEach((card, i) => {
+    card.classList.toggle('active', i === activeIdx);
+    card.classList.toggle('stacked', i < activeIdx);
+  });
+  
+  // Toggle active class on right side mockup layers
+  layers.forEach((layer, i) => {
+    layer.classList.toggle('active', i === activeIdx);
+  });
+  
+  // Update mock sidebar navigation state
+  navItems.forEach((item, i) => {
+    item.classList.toggle('active', i === activeIdx);
+  });
+  
+  // Update mock title
+  const titleEl = document.getElementById('mock-panel-title');
+  if (titleEl) {
+    titleEl.textContent = titles[activeIdx];
+  }
+  
+  // Update indicator dots on right edge
+  dots.forEach((dot, i) => {
+    dot.classList.toggle('on', i === activeIdx);
+  });
+  
+  // Trigger counters and loops inside active cards
+  if (activeIdx !== currentIdx) {
+    currentIdx = activeIdx;
+    
+    const activeStep = cards[activeIdx];
+    activeStep.querySelectorAll('.counter').forEach(el => {
+      const target = parseInt(el.dataset.to) || 100;
+      animateNumber(el, 0, target, 1100);
+    });
+    
+    // Trigger special logs sequence for AI terminal
+    if (activeIdx === 4) {
+      startTerminalLogs();
+    } else {
+      if (terminalTimeoutId) clearTimeout(terminalTimeoutId);
+    }
+  }
+}
+
+// Attach scroll with ticking requestAnimationFrame
+let scrollTicking = false;
+window.addEventListener('scroll', () => {
+  if (!scrollTicking) {
+    window.requestAnimationFrame(() => {
+      handleScroll();
+      scrollTicking = false;
+    });
+    scrollTicking = true;
+  }
+}, { passive: true });
+
+// Jump scroll when clicking side dots
+document.querySelectorAll('.step-nav-dots .step-dot').forEach((dot, i) => {
+  dot.addEventListener('click', () => {
+    const cards = document.querySelectorAll('.scroll-step');
+    if(cards[i]) {
+      const rect = cards[i].getBoundingClientRect();
+      const pinPoint = 140 + i * 20;
+      const targetScroll = window.scrollY + rect.top - pinPoint + 2;
+      window.scrollTo({
+        top: targetScroll,
+        behavior: 'smooth'
+      });
+    }
+  });
+});
+
+// Jump scroll when clicking mock sidebar items
+document.querySelectorAll('.mock-sidebar .mock-nav-item').forEach((item, i) => {
+  item.addEventListener('click', () => {
+    const cards = document.querySelectorAll('.scroll-step');
+    if(cards[i]) {
+      const rect = cards[i].getBoundingClientRect();
+      const pinPoint = 140 + i * 20;
+      const targetScroll = window.scrollY + rect.top - pinPoint + 2;
+      window.scrollTo({
+        top: targetScroll,
+        behavior: 'smooth'
+      });
+    }
+  });
+});
+
+// Run once on load to position initially
+handleScroll();
+
+</script>
+<script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'a0a54faf1e1d6dd6',t:'MTc4MTIzMDE0Mw=='};var a=document.createElement('script');a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+</html>
