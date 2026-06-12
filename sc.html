@@ -1,0 +1,964 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Simple Chibbit Space — Simplifying the world, one Chibbit at a time</title>
+<meta name="description" content="Simple Chibbit Space: simple.ai, sc.flow and sc.forge. Simplifying the world, one Chibbit at a time.">
+<style>
+/* ============================= RESET & TOKENS ============================= */
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
+:root{
+  --bg:#070a14;
+  --bg-soft:#0c1122;
+  --card:#10172b;
+  --card-2:#141d36;
+  --line:rgba(140,160,255,.14);
+  --txt:#eef1ff;
+  --muted:#9aa6c8;
+  --c1:#6c8bff;  /* chibbit blue */
+  --c2:#b06cff;  /* chibbit violet */
+  --c3:#ff6cc8;  /* chibbit pink */
+  --c4:#42e2b8;  /* chibbit mint */
+  --c5:#ffc862;  /* chibbit amber */
+  --grad:linear-gradient(100deg,var(--c1),var(--c2) 40%,var(--c3) 75%,var(--c5));
+  --r:18px;
+  --ease:cubic-bezier(.22,1,.36,1);
+}
+html{scroll-behavior:smooth}
+body{
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+  background:var(--bg);color:var(--txt);overflow-x:hidden;line-height:1.6;
+}
+::selection{background:rgba(108,139,255,.4)}
+a{color:inherit;text-decoration:none}
+button{font:inherit;cursor:pointer;border:none;background:none;color:inherit}
+img,svg{display:block}
+.wrap{max-width:1180px;margin:0 auto;padding:0 24px}
+
+/* ============================= BACKGROUND FX ============================= */
+#bg-canvas{position:fixed;inset:0;z-index:-3;width:100%;height:100%}
+.blob{position:fixed;border-radius:50%;filter:blur(90px);opacity:.35;z-index:-2;pointer-events:none;will-change:transform}
+.blob.b1{width:520px;height:520px;background:#3b55d8;top:-160px;left:-120px;animation:drift1 22s ease-in-out infinite}
+.blob.b2{width:460px;height:460px;background:#7a3bd8;top:30vh;right:-180px;animation:drift2 26s ease-in-out infinite}
+.blob.b3{width:420px;height:420px;background:#d83b9a;bottom:-140px;left:30vw;animation:drift3 30s ease-in-out infinite;opacity:.22}
+@keyframes drift1{0%,100%{transform:translate(0,0) scale(1)}50%{transform:translate(80px,60px) scale(1.15)}}
+@keyframes drift2{0%,100%{transform:translate(0,0) scale(1)}50%{transform:translate(-90px,-50px) scale(.9)}}
+@keyframes drift3{0%,100%{transform:translate(0,0)}50%{transform:translate(60px,-80px)}}
+.grain{position:fixed;inset:0;z-index:-1;pointer-events:none;opacity:.05;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.6'/%3E%3C/svg%3E");}
+
+/* scroll progress bar */
+#progress{position:fixed;top:0;left:0;height:3px;width:0;background:var(--grad);z-index:1000;box-shadow:0 0 12px rgba(176,108,255,.8)}
+
+/* ============================= NAV ============================= */
+nav{position:fixed;top:0;left:0;right:0;z-index:900;transition:background .4s,border-color .4s,backdrop-filter .4s;border-bottom:1px solid transparent}
+nav.scrolled{background:rgba(7,10,20,.72);backdrop-filter:blur(16px);border-color:var(--line)}
+.nav-inner{max-width:1180px;margin:0 auto;padding:14px 24px;display:flex;align-items:center;gap:28px}
+.logo{display:flex;align-items:center;gap:10px;font-weight:800;font-size:1.05rem;letter-spacing:.2px}
+.logo .mark{flex:none;width:34px;height:34px;animation:logoPulse 4s ease-in-out infinite;filter:drop-shadow(0 0 10px rgba(140,108,255,.5))}
+.logo .mark svg{display:block;width:100%;height:100%}
+@keyframes logoPulse{0%,100%{transform:rotate(-4deg) scale(1)}50%{transform:rotate(4deg) scale(1.08)}}
+.logo .grad-txt{background:var(--grad);-webkit-background-clip:text;background-clip:text;color:transparent}
+.nav-links{display:flex;gap:4px;margin-left:auto}
+.nav-links a{padding:8px 14px;border-radius:99px;font-size:.92rem;color:var(--muted);transition:.25s;position:relative}
+.nav-links a:hover{color:var(--txt);background:rgba(140,160,255,.1)}
+.btn{display:inline-flex;align-items:center;gap:8px;padding:11px 22px;border-radius:99px;font-weight:700;font-size:.95rem;transition:transform .25s var(--ease),box-shadow .25s;position:relative;overflow:hidden}
+.btn-primary{background:var(--grad);background-size:200% 200%;color:#fff;animation:gradShift 6s ease infinite;box-shadow:0 4px 24px rgba(140,108,255,.35)}
+.btn-primary:hover{transform:translateY(-2px) scale(1.03);box-shadow:0 8px 32px rgba(176,108,255,.55)}
+.btn-ghost{border:1px solid var(--line);color:var(--txt)}
+.btn-ghost:hover{transform:translateY(-2px);background:rgba(140,160,255,.08);border-color:rgba(140,160,255,.4)}
+@keyframes gradShift{0%,100%{background-position:0% 50%}50%{background-position:100% 50%}}
+.btn .shine{position:absolute;top:0;left:-80%;width:50%;height:100%;background:linear-gradient(105deg,transparent,rgba(255,255,255,.35),transparent);transform:skewX(-20deg);animation:shine 3.5s ease infinite}
+@keyframes shine{0%,60%{left:-80%}100%{left:160%}}
+
+/* ============================= HERO ============================= */
+header{min-height:100vh;display:flex;flex-direction:column;justify-content:center;position:relative;padding:130px 0 80px;text-align:center}
+.eyebrow{display:inline-flex;align-items:center;gap:10px;margin:0 auto 26px;padding:8px 18px;border-radius:99px;border:1px solid var(--line);background:rgba(16,23,43,.6);font-size:.85rem;color:var(--muted);animation:fadeDown 1s var(--ease) both}
+.eyebrow .dot{width:8px;height:8px;border-radius:50%;background:var(--c4);box-shadow:0 0 0 0 rgba(66,226,184,.6);animation:ping 2s infinite}
+@keyframes ping{0%{box-shadow:0 0 0 0 rgba(66,226,184,.6)}70%{box-shadow:0 0 0 10px rgba(66,226,184,0)}100%{box-shadow:0 0 0 0 rgba(66,226,184,0)}}
+h1{font-size:clamp(2.6rem,6.6vw,4.8rem);line-height:1.08;font-weight:800;letter-spacing:-.02em;max-width:980px;margin:0 auto}
+h1 .word{display:inline-block;opacity:0;transform:translateY(40px) rotate(3deg);animation:wordUp .9s var(--ease) forwards}
+@keyframes wordUp{to{opacity:1;transform:none}}
+h1 .grad-txt{background:var(--grad);background-size:200% auto;-webkit-background-clip:text;background-clip:text;color:transparent;animation:wordUp .9s var(--ease) forwards,gradShift 5s ease infinite}
+.hero-sub{max-width:640px;margin:26px auto 0;color:var(--muted);font-size:1.15rem;animation:fadeUp 1s .6s var(--ease) both}
+.hero-cta{display:flex;gap:14px;justify-content:center;margin-top:38px;animation:fadeUp 1s .8s var(--ease) both}
+@keyframes fadeUp{from{opacity:0;transform:translateY(30px)}to{opacity:1;transform:none}}
+@keyframes fadeDown{from{opacity:0;transform:translateY(-20px)}to{opacity:1;transform:none}}
+
+/* hero orbit of app icons */
+.orbit-zone{position:relative;height:300px;margin-top:48px;animation:fadeUp 1.2s 1s var(--ease) both}
+.orbit-core{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:96px;height:96px;animation:coreFloat 5s ease-in-out infinite;filter:drop-shadow(0 0 40px rgba(176,108,255,.6));z-index:2}
+.orbit-core svg{width:100%;height:100%}
+@keyframes coreFloat{0%,100%{transform:translate(-50%,-52%)}50%{transform:translate(-50%,-46%)}}
+.orbit-ring{position:absolute;left:50%;top:50%;border:1px dashed rgba(140,160,255,.22);border-radius:50%;transform:translate(-50%,-50%)}
+.ring-1{width:240px;height:240px;animation:spin 24s linear infinite}
+.ring-2{width:400px;height:400px;animation:spinRev 38s linear infinite}
+@keyframes spin{from{transform:translate(-50%,-50%) rotate(0)}to{transform:translate(-50%,-50%) rotate(360deg)}}
+@keyframes spinRev{from{transform:translate(-50%,-50%) rotate(0)}to{transform:translate(-50%,-50%) rotate(-360deg)}}
+.orbit-ring .sat{position:absolute;width:58px;height:58px;border-radius:16px;background:var(--card-2);border:1px solid var(--line);display:grid;place-items:center;font-size:1.4rem;box-shadow:0 8px 24px rgba(0,0,0,.45)}
+.ring-1 .sat{top:-29px;left:calc(50% - 29px);animation:spinRev 24s linear infinite}
+.ring-2 .sat{animation:spin 38s linear infinite}
+.ring-2 .sat.s1{top:-29px;left:calc(50% - 29px)}
+.ring-2 .sat.s2{bottom:24px;left:8px}
+.ring-2 .sat.s3{bottom:24px;right:8px}
+.scroll-hint{position:absolute;bottom:26px;left:50%;transform:translateX(-50%);color:var(--muted);font-size:.8rem;letter-spacing:.15em;text-transform:uppercase;animation:fadeUp 1s 1.4s both}
+.scroll-hint .mouse{width:24px;height:38px;border:2px solid var(--muted);border-radius:14px;margin:10px auto 0;position:relative}
+.scroll-hint .mouse::after{content:"";position:absolute;top:7px;left:50%;width:4px;height:8px;margin-left:-2px;border-radius:4px;background:var(--c1);animation:wheel 1.6s ease infinite}
+@keyframes wheel{0%{opacity:1;transform:translateY(0)}100%{opacity:0;transform:translateY(12px)}}
+
+/* ============================= LOGO MARQUEE ============================= */
+.marquee-band{padding:34px 0;border-top:1px solid var(--line);border-bottom:1px solid var(--line);background:rgba(12,17,34,.5);overflow:hidden}
+.marquee-label{text-align:center;font-size:.78rem;letter-spacing:.2em;text-transform:uppercase;color:var(--muted);margin-bottom:18px}
+.marquee{display:flex;gap:64px;width:max-content;animation:scrollX 28s linear infinite}
+.marquee:hover{animation-play-state:paused}
+.marquee span{font-weight:800;font-size:1.2rem;color:rgba(154,166,200,.55);white-space:nowrap;transition:.3s}
+.marquee span:hover{color:var(--txt);transform:scale(1.08)}
+@keyframes scrollX{to{transform:translateX(-50%)}}
+
+/* ============================= SLOGAN SCROLLER ============================= */
+#slogans{height:320vh;position:relative}
+.slogan-sticky{position:sticky;top:0;height:100vh;display:flex;align-items:center;justify-content:center;overflow:hidden}
+.slogan-stage{position:relative;width:100%;max-width:1000px;padding:0 24px;text-align:center;min-height:240px}
+.slogan{position:absolute;inset:0;display:flex;flex-direction:column;justify-content:center;gap:16px;opacity:0;transform:translateY(60px) scale(.94);filter:blur(10px);transition:opacity .7s var(--ease),transform .7s var(--ease),filter .7s var(--ease);pointer-events:none}
+.slogan.active{opacity:1;transform:none;filter:blur(0)}
+.slogan.passed{opacity:0;transform:translateY(-60px) scale(.94);filter:blur(10px)}
+.slogan h2{font-size:clamp(2rem,5.4vw,4rem);font-weight:800;line-height:1.15;letter-spacing:-.02em}
+.slogan h2 em{font-style:normal;background:var(--grad);background-size:200% auto;-webkit-background-clip:text;background-clip:text;color:transparent;animation:gradShift 5s ease infinite}
+.slogan p{color:var(--muted);font-size:1.1rem}
+.slogan-dots{position:absolute;right:36px;top:50%;transform:translateY(-50%);display:flex;flex-direction:column;gap:12px}
+.slogan-dots i{width:9px;height:9px;border-radius:50%;background:rgba(140,160,255,.25);transition:.4s}
+.slogan-dots i.on{background:var(--c2);box-shadow:0 0 12px var(--c2);transform:scale(1.4)}
+.slogan-emoji{font-size:2.6rem;animation:bobble 3s ease-in-out infinite}
+@keyframes bobble{0%,100%{transform:translateY(0) rotate(-5deg)}50%{transform:translateY(-12px) rotate(5deg)}}
+
+/* ============================= SECTIONS ============================= */
+section{padding:110px 0;position:relative}
+.sec-head{text-align:center;max-width:700px;margin:0 auto 64px}
+.kicker{display:inline-block;font-size:.8rem;font-weight:700;letter-spacing:.22em;text-transform:uppercase;color:var(--c1);margin-bottom:14px;padding:6px 16px;border:1px solid var(--line);border-radius:99px;background:rgba(108,139,255,.06)}
+.sec-head h2{font-size:clamp(1.9rem,4vw,2.8rem);font-weight:800;letter-spacing:-.02em;line-height:1.2}
+.sec-head p{color:var(--muted);margin-top:14px;font-size:1.05rem}
+
+/* reveal-on-scroll */
+.reveal{opacity:0;transform:translateY(46px);transition:opacity .9s var(--ease),transform .9s var(--ease)}
+.reveal.in{opacity:1;transform:none}
+.reveal.from-left{transform:translateX(-60px)}
+.reveal.from-right{transform:translateX(60px)}
+.reveal.zoom{transform:scale(.86)}
+.reveal.in{transform:none}
+
+/* ============================= APP SHOWCASES ============================= */
+.app-row{display:grid;grid-template-columns:1fr 1fr;gap:60px;align-items:center;margin-bottom:120px}
+.app-row:last-child{margin-bottom:0}
+.app-row.flip .app-copy{order:2}
+.app-tag{display:inline-flex;align-items:center;gap:8px;font-weight:800;font-size:.9rem;padding:7px 16px;border-radius:99px;margin-bottom:18px}
+.tag-ai{background:rgba(108,139,255,.14);color:#a7baff;border:1px solid rgba(108,139,255,.35)}
+.tag-flow{background:rgba(66,226,184,.12);color:#7defcd;border:1px solid rgba(66,226,184,.35)}
+.tag-forge{background:rgba(255,108,200,.12);color:#ff9fdb;border:1px solid rgba(255,108,200,.35)}
+.app-copy h3{font-size:clamp(1.6rem,3vw,2.2rem);font-weight:800;letter-spacing:-.01em;margin-bottom:14px}
+.app-copy p{color:var(--muted);font-size:1.05rem}
+.app-feats{margin-top:24px;display:grid;gap:12px}
+.app-feats li{list-style:none;display:flex;gap:12px;align-items:flex-start;color:#c6cfec;font-size:.97rem}
+.app-feats .chk{flex:none;width:22px;height:22px;border-radius:7px;display:grid;place-items:center;font-size:.7rem;background:rgba(108,139,255,.18);color:var(--c1);margin-top:2px}
+.app-link{display:inline-flex;align-items:center;gap:8px;margin-top:26px;font-weight:700;color:var(--c1);transition:gap .3s}
+.app-link:hover{gap:14px}
+
+/* shared mock window */
+.mock{background:var(--card);border:1px solid var(--line);border-radius:var(--r);overflow:hidden;box-shadow:0 30px 80px rgba(0,0,0,.55);transition:transform .5s var(--ease),box-shadow .5s;will-change:transform}
+.mock:hover{transform:translateY(-8px) rotate3d(1,-1,0,3deg);box-shadow:0 44px 100px rgba(0,0,0,.65)}
+.mock-bar{display:flex;align-items:center;gap:8px;padding:12px 16px;background:var(--card-2);border-bottom:1px solid var(--line)}
+.mock-bar i{width:11px;height:11px;border-radius:50%}
+.mock-bar i:nth-child(1){background:#ff5f57}.mock-bar i:nth-child(2){background:#febc2e}.mock-bar i:nth-child(3){background:#28c840}
+.mock-bar span{margin-left:10px;font-size:.8rem;color:var(--muted)}
+.mock-body{padding:20px;min-height:280px}
+
+/* simple.ai chat mock */
+.chat-msg{max-width:82%;padding:11px 15px;border-radius:14px;font-size:.9rem;margin-bottom:12px;opacity:0;transform:translateY(14px);transition:opacity .5s var(--ease),transform .5s var(--ease)}
+.chat-msg.show{opacity:1;transform:none}
+.chat-msg.user{margin-left:auto;background:linear-gradient(120deg,var(--c1),var(--c2));border-bottom-right-radius:4px;color:#fff}
+.chat-msg.bot{background:var(--card-2);border:1px solid var(--line);border-bottom-left-radius:4px;color:#dde4fb}
+.chat-msg.bot .b{color:var(--c4);font-weight:700}
+.typing{display:inline-flex;gap:5px;padding:4px 2px}
+.typing i{width:7px;height:7px;border-radius:50%;background:var(--muted);animation:tdot 1.2s infinite}
+.typing i:nth-child(2){animation-delay:.18s}.typing i:nth-child(3){animation-delay:.36s}
+@keyframes tdot{0%,60%,100%{transform:translateY(0);opacity:.4}30%{transform:translateY(-6px);opacity:1}}
+.chat-input{display:flex;gap:10px;margin-top:8px;background:var(--card-2);border:1px solid var(--line);border-radius:12px;padding:10px 14px;align-items:center}
+.chat-input .caret-line{font-size:.85rem;color:var(--muted);flex:1;white-space:nowrap;overflow:hidden}
+.chat-input .caret-line::after{content:"▍";color:var(--c1);animation:blink 1s steps(1) infinite}
+@keyframes blink{50%{opacity:0}}
+.chat-input .send{width:30px;height:30px;border-radius:9px;background:var(--grad);display:grid;place-items:center;font-size:.8rem;animation:sendPulse 2.4s ease infinite}
+@keyframes sendPulse{0%,100%{transform:scale(1)}50%{transform:scale(1.12)}}
+
+/* sc.flow kanban mock */
+.flow-cols{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+.flow-col h5{font-size:.72rem;text-transform:uppercase;letter-spacing:.12em;color:var(--muted);margin-bottom:10px;display:flex;align-items:center;gap:7px}
+.flow-col h5 i{width:8px;height:8px;border-radius:50%}
+.flow-card{background:var(--card-2);border:1px solid var(--line);border-radius:11px;padding:11px;font-size:.8rem;margin-bottom:10px;color:#d4dbf5;transition:transform .3s,border-color .3s;opacity:0;transform:translateY(16px) scale(.95)}
+.flow-card.show{opacity:1;transform:none;transition:opacity .5s var(--ease),transform .5s var(--ease)}
+.flow-card:hover{transform:translateY(-3px) rotate(-1deg);border-color:rgba(66,226,184,.5)}
+.flow-card .bar{height:5px;border-radius:5px;background:rgba(140,160,255,.18);margin-top:9px;overflow:hidden}
+.flow-card .bar i{display:block;height:100%;border-radius:5px;background:linear-gradient(90deg,var(--c4),var(--c1));width:0;transition:width 1.4s var(--ease)}
+.flow-card.show .bar i{width:var(--w,60%)}
+.flow-card .pill{display:inline-block;font-size:.62rem;font-weight:700;padding:2px 8px;border-radius:99px;margin-bottom:6px}
+.flow-card.moving{animation:cardHop 5s var(--ease) infinite}
+@keyframes cardHop{0%,72%,100%{transform:translateY(0)}78%{transform:translateY(-8px) rotate(2deg)}86%{transform:translateY(0)}}
+
+/* sc.forge code mock */
+.code-area{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:.8rem;line-height:1.75;color:#c8d3f5}
+.code-area .ln{display:flex;gap:14px;opacity:0;transform:translateX(-10px);transition:opacity .4s var(--ease),transform .4s var(--ease)}
+.code-area .ln.show{opacity:1;transform:none}
+.code-area .no{color:#46537a;width:18px;text-align:right;flex:none;user-select:none}
+.kw{color:#c792ea}.fn{color:#82aaff}.str{color:#c3e88d}.cm{color:#5b6794;font-style:italic}.va{color:#ffcb6b}
+.agent-status{display:flex;align-items:center;gap:10px;margin-top:16px;padding:10px 14px;background:rgba(255,108,200,.07);border:1px solid rgba(255,108,200,.25);border-radius:11px;font-size:.8rem;color:#ff9fdb}
+.agent-status .spin{width:14px;height:14px;border:2px solid rgba(255,108,200,.3);border-top-color:var(--c3);border-radius:50%;animation:rot 0.9s linear infinite}
+@keyframes rot{to{transform:rotate(360deg)}}
+.agent-status .ok{display:none;color:var(--c4)}
+.agent-status.done .spin{display:none}
+.agent-status.done .ok{display:inline}
+.agent-status.done{border-color:rgba(66,226,184,.35);background:rgba(66,226,184,.07);color:#7defcd}
+
+/* ============================= STATS ============================= */
+#stats{padding:80px 0}
+.stats-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:20px}
+.stat{background:var(--card);border:1px solid var(--line);border-radius:var(--r);padding:34px 22px;text-align:center;transition:transform .4s var(--ease),border-color .4s}
+.stat:hover{transform:translateY(-6px);border-color:rgba(140,160,255,.4)}
+.stat .num{font-size:clamp(2rem,4vw,2.9rem);font-weight:800;background:var(--grad);-webkit-background-clip:text;background-clip:text;color:transparent}
+.stat .lbl{color:var(--muted);font-size:.9rem;margin-top:6px}
+
+/* ============================= FEATURE BENTO ============================= */
+.bento{display:grid;grid-template-columns:repeat(6,1fr);gap:18px}
+.bento .cell{background:var(--card);border:1px solid var(--line);border-radius:var(--r);padding:30px;position:relative;overflow:hidden;transition:transform .4s var(--ease),border-color .4s}
+.bento .cell:hover{transform:translateY(-6px);border-color:rgba(176,108,255,.45)}
+.bento .cell::before{content:"";position:absolute;inset:0;background:radial-gradient(420px circle at var(--mx,50%) var(--my,50%),rgba(140,108,255,.13),transparent 60%);opacity:0;transition:opacity .4s}
+.bento .cell:hover::before{opacity:1}
+.cell.w3{grid-column:span 3}.cell.w2{grid-column:span 2}.cell.w4{grid-column:span 4}
+.cell .ico{width:46px;height:46px;border-radius:13px;display:grid;place-items:center;font-size:1.3rem;margin-bottom:18px;animation:icoFloat 4s ease-in-out infinite}
+@keyframes icoFloat{0%,100%{transform:translateY(0)}50%{transform:translateY(-6px)}}
+.cell:nth-child(2) .ico{animation-delay:.5s}.cell:nth-child(3) .ico{animation-delay:1s}
+.cell:nth-child(4) .ico{animation-delay:1.5s}.cell:nth-child(5) .ico{animation-delay:2s}
+.cell h4{font-size:1.1rem;font-weight:700;margin-bottom:8px}
+.cell p{color:var(--muted);font-size:.92rem}
+
+/* ============================= PRICING ============================= */
+.toggle-row{display:flex;align-items:center;justify-content:center;gap:14px;margin-bottom:50px;font-size:.95rem;color:var(--muted)}
+.toggle-row .save{font-size:.72rem;font-weight:800;background:rgba(66,226,184,.15);color:var(--c4);padding:3px 10px;border-radius:99px;animation:bobble 3s ease-in-out infinite}
+.switch{width:58px;height:30px;border-radius:99px;background:var(--card-2);border:1px solid var(--line);position:relative;transition:.3s}
+.switch i{position:absolute;top:3px;left:3px;width:22px;height:22px;border-radius:50%;background:var(--grad);transition:transform .35s var(--ease);box-shadow:0 0 14px rgba(176,108,255,.7)}
+.switch.on i{transform:translateX(28px)}
+.toggle-row .opt.active{color:var(--txt);font-weight:700}
+.plans{display:grid;grid-template-columns:repeat(3,1fr);gap:22px;align-items:stretch}
+.plan{background:var(--card);border:1px solid var(--line);border-radius:22px;padding:36px 30px;display:flex;flex-direction:column;position:relative;transition:transform .45s var(--ease),border-color .45s,box-shadow .45s}
+.plan:hover{transform:translateY(-10px)}
+.plan.featured{background:linear-gradient(var(--card),var(--card)) padding-box,var(--grad) border-box;border:2px solid transparent;transform:scale(1.04);box-shadow:0 24px 70px rgba(140,108,255,.25);z-index:2}
+.plan.featured:hover{transform:scale(1.04) translateY(-10px)}
+.plan .ribbon{position:absolute;top:-15px;left:50%;transform:translateX(-50%);background:var(--grad);background-size:200% 200%;animation:gradShift 5s ease infinite;font-size:.72rem;font-weight:800;letter-spacing:.1em;text-transform:uppercase;padding:6px 18px;border-radius:99px;box-shadow:0 6px 20px rgba(176,108,255,.5)}
+.plan h3{font-size:1.25rem;font-weight:800;display:flex;align-items:center;gap:10px}
+.plan h3 .em{font-size:1.4rem}
+.plan .desc{color:var(--muted);font-size:.88rem;margin-top:6px;min-height:44px}
+.price{margin:22px 0 4px;display:flex;align-items:baseline;gap:6px}
+.price .amount{font-size:3rem;font-weight:800;letter-spacing:-.03em}
+.price .per{color:var(--muted);font-size:.9rem}
+.price-note{font-size:.78rem;color:var(--muted);min-height:18px}
+.plan ul{list-style:none;margin:26px 0;display:grid;gap:12px;flex:1}
+.plan li{display:flex;gap:11px;font-size:.92rem;color:#c6cfec;align-items:flex-start}
+.plan li .tick{flex:none;width:20px;height:20px;border-radius:50%;display:grid;place-items:center;font-size:.62rem;margin-top:2px;background:rgba(108,139,255,.18);color:var(--c1)}
+.plan.featured li .tick{background:rgba(176,108,255,.22);color:#d3a8ff}
+.plan .btn{justify-content:center}
+.plan .price .amount{transition:opacity .25s,transform .25s}
+.price.swap .amount{opacity:0;transform:translateY(10px)}
+
+/* ============================= EXPLORE MORE APPS ============================= */
+.more-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:18px}
+.more-app{background:var(--card);border:1px solid var(--line);border-radius:var(--r);padding:26px 18px;text-align:center;display:flex;flex-direction:column;align-items:center;gap:4px;transition:transform .4s var(--ease),border-color .4s,box-shadow .4s}
+.more-app:hover{transform:translateY(-8px) scale(1.03);border-color:rgba(176,108,255,.5);box-shadow:0 18px 50px rgba(0,0,0,.45)}
+.more-app .ma-ico{width:62px;height:62px;border-radius:18px;display:grid;place-items:center;font-size:1.7rem;margin-bottom:12px;background:linear-gradient(135deg,var(--g1,#6c8bff),var(--g2,#b06cff));box-shadow:0 8px 26px rgba(0,0,0,.4);animation:icoFloat 4s ease-in-out infinite;transition:transform .4s var(--ease)}
+.more-app:nth-child(2n) .ma-ico{animation-delay:.7s}
+.more-app:nth-child(3n) .ma-ico{animation-delay:1.4s}
+.more-app:hover .ma-ico{transform:scale(1.12) rotate(-6deg)}
+.more-app b{font-size:1rem}
+.more-app small{color:var(--muted);font-size:.8rem}
+.more-soon{text-align:center;color:var(--muted);font-size:.92rem;margin-top:34px}
+
+/* ============================= FAQ ============================= */
+.faq{max-width:760px;margin:0 auto}
+.faq-item{border:1px solid var(--line);border-radius:14px;background:var(--card);margin-bottom:12px;overflow:hidden;transition:border-color .3s}
+.faq-item.open{border-color:rgba(140,160,255,.45)}
+.faq-q{width:100%;display:flex;justify-content:space-between;align-items:center;gap:16px;padding:20px 24px;font-weight:700;font-size:1rem;text-align:left}
+.faq-q .plus{flex:none;width:26px;height:26px;border-radius:50%;border:1px solid var(--line);display:grid;place-items:center;font-size:1rem;color:var(--c1);transition:transform .4s var(--ease),background .3s}
+.faq-item.open .plus{transform:rotate(135deg);background:rgba(108,139,255,.15)}
+.faq-a{max-height:0;overflow:hidden;transition:max-height .5s var(--ease)}
+.faq-a p{padding:0 24px 22px;color:var(--muted);font-size:.95rem}
+
+/* ============================= CTA & FOOTER ============================= */
+.cta-box{position:relative;text-align:center;padding:90px 40px;border-radius:30px;overflow:hidden;background:var(--card);border:1px solid var(--line)}
+.cta-box::before{content:"";position:absolute;inset:-60%;background:conic-gradient(from 0deg,var(--c1),var(--c2),var(--c3),var(--c5),var(--c4),var(--c1));animation:rot 14s linear infinite;opacity:.16;filter:blur(60px)}
+.cta-box>*{position:relative}
+.cta-box h2{font-size:clamp(2rem,4.6vw,3.2rem);font-weight:800;letter-spacing:-.02em}
+.cta-box p{color:var(--muted);margin:16px auto 34px;max-width:520px}
+footer{border-top:1px solid var(--line);padding:70px 0 36px;background:rgba(12,17,34,.6)}
+.foot-grid{display:grid;grid-template-columns:2fr 1fr 1fr 1fr;gap:40px;margin-bottom:50px}
+.foot-grid h5{font-size:.8rem;text-transform:uppercase;letter-spacing:.16em;color:var(--muted);margin-bottom:16px}
+.foot-grid a{display:block;color:#aab4d6;font-size:.92rem;padding:5px 0;transition:.25s}
+.foot-grid a:hover{color:var(--txt);transform:translateX(5px)}
+.foot-tag{color:var(--muted);font-size:.9rem;margin-top:14px;max-width:280px}
+.foot-bottom{display:flex;justify-content:space-between;align-items:center;padding-top:26px;border-top:1px solid var(--line);color:var(--muted);font-size:.84rem;flex-wrap:wrap;gap:12px}
+.heart{display:inline-block;color:var(--c3);animation:beat 1.4s ease infinite}
+@keyframes beat{0%,100%{transform:scale(1)}25%{transform:scale(1.25)}}
+
+/* ============================= RESPONSIVE ============================= */
+@media(max-width:920px){
+  .app-row{grid-template-columns:1fr;gap:34px}
+  .app-row.flip .app-copy{order:0}
+  .stats-grid{grid-template-columns:repeat(2,1fr)}
+  .bento{grid-template-columns:1fr 1fr}
+  .cell.w2,.cell.w3,.cell.w4{grid-column:span 2}
+  .more-grid{grid-template-columns:repeat(2,1fr)}
+  .plans{grid-template-columns:1fr;max-width:440px;margin:0 auto}
+  .plan.featured{transform:none}
+  .plan.featured:hover{transform:translateY(-10px)}
+  .foot-grid{grid-template-columns:1fr 1fr}
+  .nav-links{display:none}
+  .slogan-dots{right:14px}
+  .orbit-zone{height:240px}
+  .ring-2{width:320px;height:320px}
+}
+@media(prefers-reduced-motion:reduce){
+  *,*::before,*::after{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.2s!important}
+  html{scroll-behavior:auto}
+}
+</style>
+</head>
+<body>
+
+<!-- SC vector logo (reusable) -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <linearGradient id="scGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#6c8bff">
+        <animate attributeName="stop-color" values="#6c8bff;#b06cff;#6c8bff" dur="6s" repeatCount="indefinite"/>
+      </stop>
+      <stop offset="55%" stop-color="#b06cff">
+        <animate attributeName="stop-color" values="#b06cff;#ff6cc8;#b06cff" dur="6s" repeatCount="indefinite"/>
+      </stop>
+      <stop offset="100%" stop-color="#ff6cc8">
+        <animate attributeName="stop-color" values="#ff6cc8;#ffc862;#ff6cc8" dur="6s" repeatCount="indefinite"/>
+      </stop>
+    </linearGradient>
+    <linearGradient id="scGlass" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="rgba(255,255,255,.32)"/>
+      <stop offset="60%" stop-color="rgba(255,255,255,0)"/>
+    </linearGradient>
+    <symbol id="sc-logo" viewBox="0 0 64 64">
+      <!-- tile -->
+      <rect x="2" y="2" width="60" height="60" rx="16" fill="url(#scGrad)"/>
+      <rect x="3.2" y="3.2" width="57.6" height="57.6" rx="14.8" fill="none" stroke="url(#scGlass)" stroke-width="1.6" opacity=".9"/>
+      <rect x="2" y="2" width="60" height="30" rx="16" fill="url(#scGlass)" opacity=".5"/>
+      <!-- orbit ring + satellite -->
+      <g transform="rotate(-20 32 32)" opacity=".85">
+        <path d="M59 32 a27 10.5 0 1 1 -54 0 a27 10.5 0 1 1 54 0" fill="none" stroke="rgba(255,255,255,.38)" stroke-width="1.2" stroke-dasharray="2.5 3.5"/>
+        <circle r="2.3" fill="#fff">
+          <animateMotion dur="7s" repeatCount="indefinite" path="M59 32 a27 10.5 0 1 1 -54 0 a27 10.5 0 1 1 54 0"/>
+        </circle>
+      </g>
+      <!-- SC monogram (drawn letterforms) -->
+      <g fill="none" stroke="#fff" stroke-width="5.4" stroke-linecap="round">
+        <path d="M28.6 23.6 C28 19.9 24.9 18.2 21.7 18.2 C18 18.2 15.2 20.4 15.2 23.7 C15.2 31.6 29.3 28.3 29.3 36.5 C29.3 40.1 26 42 22.3 42 C18.5 42 15.3 40 14.8 36.4"/>
+        <path d="M49.2 24.3 C47.4 20.5 44 18.3 40.4 18.3 C34.7 18.3 31.4 23.4 31.4 30.1 C31.4 36.8 34.7 41.9 40.4 41.9 C44 41.9 47.4 39.7 49.2 35.9"/>
+      </g>
+      <!-- spark accent -->
+      <path d="M51.5 13.2 l1.1 2.6 2.6 1.1 -2.6 1.1 -1.1 2.6 -1.1 -2.6 -2.6 -1.1 2.6 -1.1 Z" fill="#fff" opacity=".95">
+        <animate attributeName="opacity" values=".95;.3;.95" dur="2.6s" repeatCount="indefinite"/>
+      </path>
+    </symbol>
+  </defs>
+</svg>
+
+<div id="progress"></div>
+<canvas id="bg-canvas"></canvas>
+<div class="blob b1"></div><div class="blob b2"></div><div class="blob b3"></div>
+<div class="grain"></div>
+
+<!-- ============ NAV ============ -->
+<nav id="nav">
+  <div class="nav-inner">
+    <a class="logo" href="#top">
+      <span class="mark"><svg><use href="#sc-logo"/></svg></span>
+      <span>simple <span class="grad-txt">chibbit</span> space</span>
+    </a>
+    <div class="nav-links">
+      <a href="#apps">Apps</a>
+      <a href="#features">Features</a>
+      <a href="#pricing">Pricing</a>
+      <a href="#faq">FAQ</a>
+    </div>
+    <a class="btn btn-ghost" href="#pricing" style="margin-left:auto">Sign in</a>
+    <a class="btn btn-primary" href="#pricing">Get started free<span class="shine"></span></a>
+  </div>
+</nav>
+
+<!-- ============ HERO ============ -->
+<header id="top">
+  <div class="wrap">
+    <div class="eyebrow"><span class="dot"></span>All systems online</div>
+    <h1 id="hero-h1">
+      <!-- words injected by JS for stagger animation -->
+    </h1>
+    <p class="hero-sub">One space. Three brilliantly simple apps. <b>simple.ai</b> to think with you, <b>sc.flow</b> to organise you, and <b>sc.forge</b> to build for you.</p>
+    <div class="hero-cta">
+      <a class="btn btn-primary" href="#pricing">Start with SC Free<span class="shine"></span></a>
+      <a class="btn btn-ghost" href="#apps">Explore the apps ↓</a>
+    </div>
+
+    <div class="orbit-zone">
+      <div class="orbit-core"><svg><use href="#sc-logo"/></svg></div>
+      <div class="orbit-ring ring-1"><div class="sat">💬</div></div>
+      <div class="orbit-ring ring-2">
+        <div class="sat s1">✅</div>
+        <div class="sat s2">⚒️</div>
+        <div class="sat s3">✨</div>
+      </div>
+    </div>
+  </div>
+  <div class="scroll-hint">scroll<div class="mouse"></div></div>
+</header>
+
+<!-- ============ TRUST MARQUEE ============ -->
+<div class="marquee-band">
+  <div class="marquee-label">One Space, applicable to every field</div>
+  <div class="marquee">
+    <span>🎓 SCHOOL &amp; STUDY</span><span>📊 DATA SCIENCE</span><span>💻 SOFTWARE ENGINEERING</span><span>🎨 DESIGN</span><span>📣 MARKETING</span><span>🔬 RESEARCH</span><span>🏥 HEALTHCARE</span><span>💼 FINANCE</span><span>⚖️ LAW</span><span>🚀 STARTUPS</span><span>✍️ WRITING</span><span>🎮 GAME DEV</span>
+    <span>🎓 SCHOOL &amp; STUDY</span><span>📊 DATA SCIENCE</span><span>💻 SOFTWARE ENGINEERING</span><span>🎨 DESIGN</span><span>📣 MARKETING</span><span>🔬 RESEARCH</span><span>🏥 HEALTHCARE</span><span>💼 FINANCE</span><span>⚖️ LAW</span><span>🚀 STARTUPS</span><span>✍️ WRITING</span><span>🎮 GAME DEV</span>
+  </div>
+</div>
+
+<!-- ============ SCROLL-CYCLING SLOGANS ============ -->
+<div id="slogans">
+  <div class="slogan-sticky">
+    <div class="slogan-stage">
+      <div class="slogan" data-i="0">
+        <div class="slogan-emoji">✨</div>
+        <h2>Simplifying <em>the world</em>,<br>one Chibbit at a time.</h2>
+        <p>What's a Chibbit? Think of a yottabyte — only more simple, and more powerful.</p>
+      </div>
+      <div class="slogan" data-i="1">
+        <div class="slogan-emoji">📱</div>
+        <h2>Simplifying <em>your world</em>,<br>one app at a time.</h2>
+        <p>simple.ai · sc.flow · sc.forge — built to disappear into your day.</p>
+      </div>
+      <div class="slogan" data-i="2">
+        <div class="slogan-emoji">🚀</div>
+        <h2>Simplifying <em>our world</em>,<br>one innovation at a time.</h2>
+        <p>Because the future should feel lighter, not heavier.</p>
+      </div>
+    </div>
+    <div class="slogan-dots"><i class="on"></i><i></i><i></i></div>
+  </div>
+</div>
+
+<!-- ============ APPS ============ -->
+<section id="apps">
+  <div class="wrap">
+    <div class="sec-head reveal">
+      <span class="kicker">The Space</span>
+      <h2>Three apps. Zero clutter.</h2>
+      <p>Each app does one thing brilliantly — and they all talk to each other inside your Chibbit Space.</p>
+    </div>
+
+    <!-- simple.ai -->
+    <div class="app-row">
+      <div class="app-copy reveal from-left">
+        <span class="app-tag tag-ai">💬 simple.ai</span>
+        <h3>An AI chat that actually keeps it simple.</h3>
+        <p>Ask anything, draft everything. simple.ai gives you straight answers without the waffle — and it remembers your whole Space, so context is never lost.</p>
+        <ul class="app-feats">
+          <li><span class="chk">✓</span>Space-aware memory across all your apps</li>
+          <li><span class="chk">✓</span>One-tap "Simplify this" on any document or thread</li>
+          <li><span class="chk">✓</span>Voice, vision and 40+ languages built in</li>
+        </ul>
+        <a class="app-link" href="#pricing">Try simple.ai <span>→</span></a>
+      </div>
+      <div class="reveal from-right">
+        <div class="mock" id="chat-mock">
+          <div class="mock-bar"><i></i><i></i><i></i><span>simple.ai — New chat</span></div>
+          <div class="mock-body">
+            <div class="chat-msg user">Can you summarise this 40-page report in plain English?</div>
+            <div class="chat-msg bot" id="bot-typing"><span class="typing"><i></i><i></i><i></i></span></div>
+            <div class="chat-msg bot" id="bot-answer"><span class="b">Done!</span> Here's the gist in 3 bullet points — revenue up 18%, churn down, and the launch slipped to Q3. Want the action items too?</div>
+            <div class="chat-msg user" id="user-2">Yes please — and pop them into sc.flow 🙌</div>
+            <div class="chat-input"><span class="caret-line" id="typeline"></span><span class="send">➤</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- sc.flow -->
+    <div class="app-row flip">
+      <div class="app-copy reveal from-right">
+        <span class="app-tag tag-flow">✅ sc.flow</span>
+        <h3>Tasks that flow, instead of pile up.</h3>
+        <p>A task tracker that feels like a calm river, not a flooded inbox. Drag, drop, done — with AI auto-sorting your day before you've had coffee.</p>
+        <ul class="app-feats">
+          <li><span class="chk">✓</span>Auto-prioritised "Today" view, curated by simple.ai</li>
+          <li><span class="chk">✓</span>Boards, lists and timelines that stay in sync</li>
+          <li><span class="chk">✓</span>Team flows with zero-meeting status updates</li>
+        </ul>
+        <a class="app-link" href="#pricing">Try sc.flow <span>→</span></a>
+      </div>
+      <div class="reveal from-left">
+        <div class="mock" id="flow-mock">
+          <div class="mock-bar"><i></i><i></i><i></i><span>sc.flow — Launch board</span></div>
+          <div class="mock-body">
+            <div class="flow-cols">
+              <div class="flow-col">
+                <h5><i style="background:var(--c1)"></i>To do</h5>
+                <div class="flow-card"><span class="pill" style="background:rgba(108,139,255,.18);color:#a7baff">Design</span><br>Polish onboarding screens<div class="bar"><i style="--w:15%"></i></div></div>
+                <div class="flow-card"><span class="pill" style="background:rgba(255,200,98,.16);color:#ffd98c">Docs</span><br>Write release notes<div class="bar"><i style="--w:5%"></i></div></div>
+              </div>
+              <div class="flow-col">
+                <h5><i style="background:var(--c5)"></i>In progress</h5>
+                <div class="flow-card moving"><span class="pill" style="background:rgba(66,226,184,.16);color:#7defcd">Dev</span><br>Hook simple.ai summaries<div class="bar"><i style="--w:62%"></i></div></div>
+                <div class="flow-card"><span class="pill" style="background:rgba(255,108,200,.16);color:#ff9fdb">QA</span><br>Mobile beta testing<div class="bar"><i style="--w:40%"></i></div></div>
+              </div>
+              <div class="flow-col">
+                <h5><i style="background:var(--c4)"></i>Done</h5>
+                <div class="flow-card"><span class="pill" style="background:rgba(66,226,184,.16);color:#7defcd">Dev</span><br>Ship dark mode 🌙<div class="bar"><i style="--w:100%"></i></div></div>
+                <div class="flow-card"><span class="pill" style="background:rgba(108,139,255,.18);color:#a7baff">Design</span><br>New SC logo system<div class="bar"><i style="--w:100%"></i></div></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- sc.forge -->
+    <div class="app-row">
+      <div class="app-copy reveal from-left">
+        <span class="app-tag tag-forge">⚒️ sc.forge</span>
+        <h3>Agentic coding. You describe, it ships.</h3>
+        <p>sc.forge spins up autonomous coding agents that plan, write, test and deploy. Review the diff, hit approve, and get back to the fun parts.</p>
+        <ul class="app-feats">
+          <li><span class="chk">✓</span>Multi-agent swarms for full features, not just snippets</li>
+          <li><span class="chk">✓</span>Self-healing tests and automatic PR descriptions</li>
+          <li><span class="chk">✓</span>Tasks flow straight in from sc.flow</li>
+        </ul>
+        <a class="app-link" href="#pricing">Try sc.forge <span>→</span></a>
+      </div>
+      <div class="reveal from-right">
+        <div class="mock" id="forge-mock">
+          <div class="mock-bar"><i></i><i></i><i></i><span>sc.forge — agent: build-checkout-flow</span></div>
+          <div class="mock-body">
+            <div class="code-area" id="code-area">
+              <div class="ln"><span class="no">1</span><span><span class="cm">// agent plan: add one-click checkout ✨</span></span></div>
+              <div class="ln"><span class="no">2</span><span><span class="kw">import</span> { chibbit } <span class="kw">from</span> <span class="str">"@scs/forge"</span>;</span></div>
+              <div class="ln"><span class="no">3</span><span></span></div>
+              <div class="ln"><span class="no">4</span><span><span class="kw">export async function</span> <span class="fn">checkout</span>(<span class="va">cart</span>) {</span></div>
+              <div class="ln"><span class="no">5</span><span>&nbsp;&nbsp;<span class="kw">const</span> <span class="va">order</span> = <span class="kw">await</span> chibbit.<span class="fn">simplify</span>(cart);</span></div>
+              <div class="ln"><span class="no">6</span><span>&nbsp;&nbsp;<span class="kw">return</span> order.<span class="fn">ship</span>({ <span class="va">speed</span>: <span class="str">"instant"</span> });</span></div>
+              <div class="ln"><span class="no">7</span><span>}</span></div>
+              <div class="ln"><span class="no">8</span><span><span class="cm">// 14 tests written · 14 passing ✓</span></span></div>
+            </div>
+            <div class="agent-status" id="agent-status">
+              <span class="spin"></span><span class="ok">✓</span>
+              <span id="agent-text">Agent thinking… planning 3 subtasks</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ STATS ============ -->
+<section id="stats">
+  <div class="wrap">
+    <div class="stats-grid">
+      <div class="stat reveal"><div class="num"><span class="count" data-to="50" data-suffix="K+">0</span></div><div class="lbl">Lines of Code</div></div>
+      <div class="stat reveal" style="transition-delay:.1s"><div class="num"><span class="count" data-to="20" data-suffix="+">0</span></div><div class="lbl">Updates Monthly</div></div>
+      <div class="stat reveal" style="transition-delay:.2s"><div class="num"><span class="count" data-to="99" data-suffix=".99%">0</span></div><div class="lbl">Satisfaction Guarantee</div></div>
+      <div class="stat reveal" style="transition-delay:.3s"><div class="num"><span class="count" data-to="183" data-suffix="">0</span></div><div class="lbl">Countries: Global Access</div></div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ FEATURES BENTO ============ -->
+<section id="features">
+  <div class="wrap">
+    <div class="sec-head reveal">
+      <span class="kicker">Why Chibbit?</span>
+      <h2>Everything connects. Nothing complicates.</h2>
+      <p>One login, one design language, one keyboard shortcut away from anything.</p>
+    </div>
+    <div class="bento">
+      <div class="cell w3 reveal"><div class="ico" style="background:rgba(108,139,255,.16)">🧠</div><h4>One shared brain</h4><p>simple.ai reads your flows and your forge — context follows you everywhere, so you never re-explain yourself.</p></div>
+      <div class="cell w3 reveal" style="transition-delay:.08s"><div class="ico" style="background:rgba(66,226,184,.14)">⚡</div><h4>Chibbit-speed sync</h4><p>Our hosting is powered by CPanel - Changes land globally within 200ms.</p></div>
+      <div class="cell w2 reveal"><div class="ico" style="background:rgba(255,108,200,.14)">🔒</div><h4>Vault-grade security</h4><p>Our data is protected by Google Firebase.</p></div>
+      <div class="cell w2 reveal" style="transition-delay:.08s"><div class="ico" style="background:rgba(255,200,98,.14)">🌙</div><h4>Calm by design</h4><p>No red badges. No guilt trips. Notifications arrive in one gentle daily digest.</p></div>
+      <div class="cell w2 reveal" style="transition-delay:.16s"><div class="ico" style="background:rgba(176,108,255,.16)">🧩</div><h4>Infinite integrations</h4><p>One simple JS Bookmarklet can connect your space to the worrld</p></div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ PRICING ============ -->
+<section id="pricing" style="display:none;">
+  <div class="wrap">
+    <div class="sec-head reveal">
+      <span class="kicker">Pricing</span>
+      <h2>Simple plans. (Coming soon..)</h2>
+      <p>Start free forever. Upgrade when your world needs more simplifying.</p>
+    </div>
+
+    <div class="toggle-row reveal">
+      <span class="opt active" id="opt-month">Monthly</span>
+      <button class="switch" id="billing-switch" aria-label="Toggle billing period"><i></i></button>
+      <span class="opt" id="opt-year">Yearly</span>
+      <span class="save">Save 20% ✨</span>
+    </div>
+
+    <div class="plans">
+      <div class="plan reveal from-left">
+        <h3><span class="em">🌱</span> SC Free</h3>
+        <p class="desc">For curious humans taking a first step into the Space.</p>
+        <div class="price"><span class="amount" data-month="$0" data-year="$0">$0</span><span class="per">/month</span></div>
+        <div class="price-note">Free forever. No card needed.</div>
+        <ul>
+          <li><span class="tick">✓</span>simple.ai — 50 chats / day</li>
+          <li><span class="tick">✓</span>sc.flow — 3 boards, unlimited tasks</li>
+          <li><span class="tick">✓</span>sc.forge — 5 agent runs / month</li>
+          <li><span class="tick">✓</span>2 GB Chibbit storage</li>
+          <li><span class="tick">✓</span>Community support</li>
+        </ul>
+        <a class="btn btn-ghost" href="#top">Start for free</a>
+      </div>
+
+      <div class="plan featured reveal zoom">
+        <div class="ribbon">Recommended</div>
+        <h3><span class="em">🚀</span> SC Pro</h3>
+        <p class="desc">For people and small teams who simplify daily.</p>
+        <div class="price"><span class="amount" data-month="$12" data-year="$9.60">$12</span><span class="per">/user · month</span></div>
+        <div class="price-note" id="pro-note">Billed monthly</div>
+        <ul>
+          <li><span class="tick">✓</span>simple.ai — unlimited chats + vision &amp; voice</li>
+          <li><span class="tick">✓</span>sc.flow — unlimited boards, timelines &amp; teams</li>
+          <li><span class="tick">✓</span>sc.forge — 200 agent runs / month</li>
+          <li><span class="tick">✓</span>200 GB storage + version history</li>
+          <li><span class="tick">✓</span>Chibbit Command Bar everywhere</li>
+          <li><span class="tick">✓</span>Priority support</li>
+        </ul>
+        <a class="btn btn-primary" href="#top">Go Pro<span class="shine"></span></a>
+      </div>
+
+      <div class="plan reveal from-right">
+        <h3><span class="em">🌌</span> SC Ultra</h3>
+        <p class="desc">For organisations simplifying the whole world.</p>
+        <div class="price"><span class="amount" data-month="$29" data-year="$23.20">$29</span><span class="per">/user · month</span></div>
+        <div class="price-note" id="ultra-note">Billed monthly</div>
+        <ul>
+          <li><span class="tick">✓</span>Everything in SC Pro, unlimited</li>
+          <li><span class="tick">✓</span>sc.forge — unlimited agent swarms</li>
+          <li><span class="tick">✓</span>Private models &amp; on-prem Chibbits</li>
+          <li><span class="tick">✓</span>SSO, SCIM, audit logs, SOC 2</li>
+          <li><span class="tick">✓</span>99.99% uptime SLA</li>
+          <li><span class="tick">✓</span>Dedicated Chibbit concierge</li>
+        </ul>
+        <a class="btn btn-ghost" href="#top">Talk to sales</a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ EXPLORE MORE APPS ============ -->
+<section id="more-apps" style="padding-bottom:60px">
+  <div class="wrap">
+    <div class="sec-head reveal">
+      <span class="kicker">The constellation</span>
+      <h2>More apps coming soon to simplify your space more.</h2>
+      <p>The Space keeps expanding. Every app, one Chibbit simpler.</p>
+    </div>
+    <div class="more-grid">
+      <a class="more-app reveal" href="#"><span class="ma-ico" style="--g1:#6c8bff;--g2:#42e2b8">📚</span><b>sc.study</b><small>Flashcards &amp; AI tutoring</small></a>
+      <a class="more-app reveal" href="#" style="transition-delay:.05s"><span class="ma-ico" style="--g1:#b06cff;--g2:#6c8bff">📄</span><b>sc.docs</b><small>Documents that write back</small></a>
+      <a class="more-app reveal" href="#" style="transition-delay:.1s"><span class="ma-ico" style="--g1:#ff6cc8;--g2:#b06cff">📊</span><b>sc.sheets</b><small>Spreadsheets, minus the dread</small></a>
+      <a class="more-app reveal" href="#" style="transition-delay:.15s"><span class="ma-ico" style="--g1:#ffc862;--g2:#ff6cc8">📬</span><b>sc.mail</b><small>Inbox zero, on autopilot</small></a>
+      <a class="more-app reveal" href="#" style="transition-delay:.2s"><span class="ma-ico" style="--g1:#42e2b8;--g2:#ffc862">🗓️</span><b>sc.cal</b><small>A calendar that says no for you</small></a>
+      <a class="more-app reveal" href="#" style="transition-delay:.25s"><span class="ma-ico" style="--g1:#6c8bff;--g2:#ff6cc8">🎨</span><b>sc.canvas</b><small>Whiteboards &amp; design</small></a>
+      <a class="more-app reveal" href="#" style="transition-delay:.3s"><span class="ma-ico" style="--g1:#b06cff;--g2:#42e2b8">🎥</span><b>sc.meet</b><small>Calls with instant recaps</small></a>
+      <a class="more-app reveal" href="#" style="transition-delay:.35s"><span class="ma-ico" style="--g1:#ff6cc8;--g2:#6c8bff">🔐</span><b>sc.vault</b><small>Files &amp; passwords, sealed</small></a>
+    </div>
+    <p class="more-soon reveal">…and <b>sc.translate</b>, <b>sc.notes</b> &amp; <b>sc.builder</b> are in the lab 🧪</p>
+  </div>
+</section>
+
+<!-- ============ FAQ ============ -->
+<section id="faq">
+  <div class="wrap">
+    <div class="sec-head reveal">
+      <span class="kicker">FAQ</span>
+      <h2>Simple questions, simple answers.</h2>
+    </div>
+    <div class="faq">
+      <div class="faq-item reveal"><button class="faq-q">What exactly is a Chibbit? <span class="plus">+</span></button><div class="faq-a"><p>A Chibbit is like a yottabyte — only more simple, and more powerful. Beyond that, we're legally and philosophically unable to elaborate. You'll know one when you feel one.</p></div></div>
+      <div class="faq-item reveal"><button class="faq-q">Do the three apps work on their own? <span class="plus">+</span></button><div class="faq-a"><p>Absolutely. simple.ai, sc.flow and sc.forge are each fully standalone — but plug them into the same Space and they share context, so the whole becomes much greater than the parts.</p></div></div>
+      <div class="faq-item reveal"><button class="faq-q">Is SC Free really free forever? <span class="plus">+</span></button><div class="faq-a"><p>Yes. No trial countdowns, no card required, no surprise paywalls. We make money when teams grow into SC Pro and SC Ultra — not by squeezing free users.</p></div></div>
+      <div class="faq-item reveal"><button class="faq-q">How safe is my data with the sc.forge agents? <span class="plus">+</span></button><div class="faq-a"><p>Agents run in isolated sandboxes, never push without your approval, and every action is logged. On SC Ultra you can run private models entirely on your own infrastructure.</p></div></div>
+      <div class="faq-item reveal"><button class="faq-q">Can I switch plans anytime? <span class="plus">+</span></button><div class="faq-a"><p>Move up or down whenever you like. Upgrades are instant; downgrades take effect at the end of your billing cycle, and we prorate everything fairly.</p></div></div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ CTA ============ -->
+<section style="padding-top:30px">
+  <div class="wrap">
+    <div class="cta-box reveal zoom">
+      <h2>Ready to simplify <span style="background:var(--grad);-webkit-background-clip:text;background-clip:text;color:transparent">your world?</span></h2>
+      <p>Join us in the Simple Chibbit Space. It takes 30 seconds, and the Chibbits do most of the work.</p>
+      <a class="btn btn-primary" href="#top" style="font-size:1.05rem;padding:15px 34px">Get started — it's free<span class="shine"></span></a>
+    </div>
+  </div>
+</section>
+
+<!-- ============ FOOTER ============ -->
+<footer>
+  <div class="wrap">
+    <div class="foot-grid">
+      <div>
+        <a class="logo" href="#top"><span class="mark"><svg><use href="#sc-logo"/></svg></span><span>simple <span class="grad-txt">chibbit</span> space</span></a>
+        <p class="foot-tag" id="foot-slogan">Simplifying the world, one Chibbit at a time.</p>
+      </div>
+      <div><h5>Apps</h5><a href="#apps">simple.ai</a><a href="#apps">sc.flow</a><a href="#apps">sc.forge</a><a href="#more-apps">sc.study</a><a href="#more-apps">sc.docs</a><a href="#more-apps">All apps →</a></div>
+      <div><h5>Company</h5><a href="#">About</a><a href="#">Careers</a><a href="#">The Signal (blog)</a><a href="#">Press kit</a></div>
+      <div><h5>Support</h5><a href="#faq">Help centre</a><a href="#">API docs</a><a href="#">Status</a><a href="#">Contact</a></div>
+    </div>
+    <div class="foot-bottom">
+      <span>© 2026 Simple Chibbit Space Pty Ltd. All Chibbits reserved.</span>
+      <span>Made with <span class="heart">♥</span> in the Space</span>
+    </div>
+  </div>
+</footer>
+
+<script>
+/* ============================= HERO HEADLINE STAGGER ============================= */
+(function(){
+  const h1 = document.getElementById('hero-h1');
+  const words = [
+    {t:'Your'},{t:'whole'},{t:'digital'},{t:'life,'},
+    {t:'beautifully',grad:true},{t:'simple.',grad:true}
+  ];
+  words.forEach((w,i)=>{
+    const s=document.createElement('span');
+    s.className='word'+(w.grad?' grad-txt':'');
+    s.textContent=w.t;
+    s.style.animationDelay=(0.15+i*0.12)+'s';
+    h1.appendChild(s);
+    h1.appendChild(document.createTextNode(' '));
+  });
+})();
+
+/* ============================= STARFIELD CANVAS ============================= */
+(function(){
+  const c=document.getElementById('bg-canvas'),x=c.getContext('2d');
+  let W,H,stars=[];
+  function size(){W=c.width=innerWidth;H=c.height=innerHeight;
+    stars=Array.from({length:Math.min(140,W/9)},()=>({
+      x:Math.random()*W,y:Math.random()*H,r:Math.random()*1.6+.3,
+      tw:Math.random()*Math.PI*2,sp:.15+Math.random()*.4
+    }));
+  }
+  size();addEventListener('resize',size);
+  let scrollV=0;
+  addEventListener('scroll',()=>{scrollV=window.scrollY},{passive:true});
+  (function draw(t){
+    x.clearRect(0,0,W,H);
+    for(const s of stars){
+      const a=.25+.55*Math.abs(Math.sin(t/1400+s.tw));
+      const yy=(s.y - scrollV*s.sp*0.12)%H; const py=yy<0?yy+H:yy;
+      x.globalAlpha=a;x.fillStyle='#aebcff';
+      x.beginPath();x.arc(s.x,py,s.r,0,7);x.fill();
+    }
+    x.globalAlpha=1;
+    requestAnimationFrame(draw);
+  })(0);
+})();
+
+/* ============================= NAV + PROGRESS ============================= */
+const nav=document.getElementById('nav'),prog=document.getElementById('progress');
+addEventListener('scroll',()=>{
+  nav.classList.toggle('scrolled',scrollY>40);
+  const h=document.documentElement;
+  prog.style.width=(scrollY/(h.scrollHeight-innerHeight)*100)+'%';
+},{passive:true});
+
+/* ============================= SCROLL-CYCLING SLOGANS ============================= */
+(function(){
+  const zone=document.getElementById('slogans');
+  const slogans=[...zone.querySelectorAll('.slogan')];
+  const dots=[...zone.querySelectorAll('.slogan-dots i')];
+  const foot=document.getElementById('foot-slogan');
+  const texts=[
+    'Simplifying the world, one Chibbit at a time.',
+    'Simplifying your world, one app at a time.',
+    'Simplifying our world, one innovation at a time.'
+  ];
+  let current=-1;
+  function update(){
+    const r=zone.getBoundingClientRect();
+    const total=r.height-innerHeight;
+    const p=Math.min(1,Math.max(0,-r.top/total)); // 0..1 through section
+    const idx=Math.min(2,Math.floor(p*3));
+    if(idx!==current){
+      current=idx;
+      slogans.forEach((s,i)=>{
+        s.classList.toggle('active',i===idx);
+        s.classList.toggle('passed',i<idx);
+      });
+      dots.forEach((d,i)=>d.classList.toggle('on',i===idx));
+      foot.textContent=texts[idx];
+    }
+  }
+  addEventListener('scroll',update,{passive:true});
+  update();
+})();
+
+/* ============================= REVEAL ON SCROLL ============================= */
+const io=new IntersectionObserver(es=>{
+  es.forEach(e=>{ if(e.isIntersecting){ e.target.classList.add('in'); io.unobserve(e.target);} });
+},{threshold:.18});
+document.querySelectorAll('.reveal').forEach(el=>io.observe(el));
+
+/* ============================= CHAT MOCK SEQUENCE ============================= */
+(function(){
+  const mock=document.getElementById('chat-mock');
+  const msgs=[...mock.querySelectorAll('.chat-msg')];
+  const typingMsg=document.getElementById('bot-typing');
+  const typeline=document.getElementById('typeline');
+  const phrases=['Plan my week with sc.flow…','Summarise this PDF…','Draft a kind "no" email…','Explain quantum stuff simply…'];
+  let started=false;
+  function typeLoop(pi=0){
+    const text=phrases[pi%phrases.length];let i=0;
+    (function step(){
+      typeline.textContent=text.slice(0,++i);
+      if(i<text.length) setTimeout(step,55);
+      else setTimeout(()=>{typeline.textContent='';typeLoop(pi+1);},2200);
+    })();
+  }
+  function play(){
+    const seq=[[msgs[0],300],[typingMsg,1100],[null,1400],[msgs[2],0],[msgs[3],900]];
+    let t=0;
+    seq.forEach(([el,delay])=>{
+      t+=delay;
+      setTimeout(()=>{
+        if(el===null){typingMsg.classList.remove('show');typingMsg.style.display='none';}
+        else el.classList.add('show');
+      },t);
+    });
+    setTimeout(typeLoop, t+800);
+  }
+  new IntersectionObserver((es,o)=>{
+    if(es[0].isIntersecting&&!started){started=true;play();o.disconnect();}
+  },{threshold:.4}).observe(mock);
+})();
+
+/* ============================= FLOW CARDS STAGGER ============================= */
+(function(){
+  const mock=document.getElementById('flow-mock');
+  const cards=[...mock.querySelectorAll('.flow-card')];
+  new IntersectionObserver((es,o)=>{
+    if(es[0].isIntersecting){
+      cards.forEach((c,i)=>setTimeout(()=>c.classList.add('show'),i*160));
+      o.disconnect();
+    }
+  },{threshold:.35}).observe(mock);
+})();
+
+/* ============================= FORGE CODE TYPE-IN ============================= */
+(function(){
+  const mock=document.getElementById('forge-mock');
+  const lines=[...mock.querySelectorAll('.code-area .ln')];
+  const status=document.getElementById('agent-status');
+  const statusTxt=document.getElementById('agent-text');
+  const phases=['Agent thinking… planning 3 subtasks','Agent coding… writing checkout()','Agent testing… running 14 specs','Agent done — PR #214 ready for review ✓'];
+  new IntersectionObserver((es,o)=>{
+    if(!es[0].isIntersecting)return;
+    lines.forEach((l,i)=>setTimeout(()=>l.classList.add('show'),400+i*420));
+    phases.forEach((p,i)=>setTimeout(()=>{
+      statusTxt.textContent=p;
+      if(i===phases.length-1)status.classList.add('done');
+    },i*1500));
+    o.disconnect();
+  },{threshold:.35}).observe(mock);
+})();
+
+/* ============================= STAT COUNTERS ============================= */
+(function(){
+  const counters=document.querySelectorAll('.count');
+  const obs=new IntersectionObserver(es=>{
+    es.forEach(e=>{
+      if(!e.isIntersecting)return;
+      const el=e.target,to=parseFloat(el.dataset.to),suf=el.dataset.suffix||'';
+      const t0=performance.now(),dur=1800;
+      (function tick(t){
+        const p=Math.min(1,(t-t0)/dur),ease=1-Math.pow(1-p,4);
+        el.textContent=Math.round(to*ease)+suf;
+        if(p<1)requestAnimationFrame(tick);
+      })(t0);
+      obs.unobserve(el);
+    });
+  },{threshold:.6});
+  counters.forEach(c=>obs.observe(c));
+})();
+
+/* ============================= BENTO CURSOR GLOW ============================= */
+document.querySelectorAll('.bento .cell').forEach(cell=>{
+  cell.addEventListener('mousemove',e=>{
+    const r=cell.getBoundingClientRect();
+    cell.style.setProperty('--mx',(e.clientX-r.left)+'px');
+    cell.style.setProperty('--my',(e.clientY-r.top)+'px');
+  });
+});
+
+/* ============================= PRICING TOGGLE ============================= */
+(function(){
+  const sw=document.getElementById('billing-switch');
+  const amounts=document.querySelectorAll('.price .amount');
+  const om=document.getElementById('opt-month'),oy=document.getElementById('opt-year');
+  const notes=[document.getElementById('pro-note'),document.getElementById('ultra-note')];
+  let yearly=false;
+  sw.addEventListener('click',()=>{
+    yearly=!yearly;
+    sw.classList.toggle('on',yearly);
+    om.classList.toggle('active',!yearly);
+    oy.classList.toggle('active',yearly);
+    amounts.forEach(a=>{
+      a.parentElement.classList.add('swap');
+      setTimeout(()=>{
+        a.textContent=yearly?a.dataset.year:a.dataset.month;
+        a.parentElement.classList.remove('swap');
+      },250);
+    });
+    notes.forEach(n=>n&&(n.textContent=yearly?'Billed yearly — 20% off 🎉':'Billed monthly'));
+  });
+})();
+
+/* ============================= FAQ ACCORDION ============================= */
+document.querySelectorAll('.faq-item').forEach(item=>{
+  const q=item.querySelector('.faq-q'),a=item.querySelector('.faq-a');
+  q.addEventListener('click',()=>{
+    const open=item.classList.contains('open');
+    document.querySelectorAll('.faq-item.open').forEach(o=>{
+      o.classList.remove('open');o.querySelector('.faq-a').style.maxHeight=0;
+    });
+    if(!open){item.classList.add('open');a.style.maxHeight=a.scrollHeight+'px';}
+  });
+});
+
+/* ============================= MOCK TILT PARALLAX ============================= */
+document.querySelectorAll('.mock').forEach(m=>{
+  m.addEventListener('mousemove',e=>{
+    const r=m.getBoundingClientRect();
+    const dx=(e.clientX-r.left)/r.width-.5, dy=(e.clientY-r.top)/r.height-.5;
+    m.style.transform=`translateY(-8px) rotate3d(${-dy},${dx},0,${Math.hypot(dx,dy)*10}deg)`;
+  });
+  m.addEventListener('mouseleave',()=>{m.style.transform='';});
+});
+</script>
+<script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'a0a4bc90fb46ff98',t:'MTc4MTIyNDExNw=='};var a=document.createElement('script');a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+</html>
