@@ -1,0 +1,1173 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Wireframe Earth</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Inter:wght@300;400;600&display=swap');
+
+        :root {
+            --accent: #ffaa33;
+            --accent-glow: rgba(255,170,51,0.5);
+            --accent-dim: rgba(255,170,51,0.15);
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        html { scroll-behavior: auto; }
+        body { background: #000; overflow-x: hidden; }
+
+        .scroll-spacer { height: 1100vh; position: relative; z-index: 0; }
+
+        #three-canvas {
+            position: fixed; top: 0; left: 0;
+            width: 100%; height: 100%; z-index: 1;
+            pointer-events: none;
+        }
+
+        /* ─── Title (letters animate individually) ─── */
+        #title-wrap {
+            position: fixed;
+            top: 45%; left: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 10;
+            text-align: center;
+            pointer-events: none;
+        }
+        #title {
+            font-family: 'Orbitron', sans-serif;
+            font-weight: 900;
+            font-size: clamp(1.8rem, 5vw, 4.2rem);
+            color: #fff;
+            text-shadow: 0 0 30px var(--accent-glow, rgba(255,136,0,0.5)), 0 0 60px var(--accent-dim, rgba(255,80,0,0.2));
+            letter-spacing: 0.25em;
+            white-space: nowrap;
+            display: inline-block;
+            line-height: 1.2;
+            transition: text-shadow 0.6s ease;
+        }
+#title .char {
+    display: inline-block;
+    will-change: transform, opacity, filter, color, text-shadow;
+}
+
+/* ─── Hero Description ─── */
+#hero-description {
+    font-family: 'Inter', sans-serif;
+    font-size: clamp(0.9rem, 1.4vw, 1.1rem);
+    font-weight: 300;
+    line-height: 1.6;
+    color: rgba(255,255,255,0.75);
+    max-width: 500px;
+    margin: 1.5rem auto 0;
+    text-shadow: 0 0 10px rgba(0,0,0,0.8);
+    will-change: transform, opacity, filter;
+}
+
+/* ─── Hero Buttons ─── */
+#hero-buttons {
+            position: fixed;
+            top: 70%; left: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 10;
+            display: flex;
+            gap: 1.2rem;
+            pointer-events: none;
+        }
+        #hero-buttons a {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 0.65rem;
+            font-weight: 600;
+            letter-spacing: 0.2em;
+            text-transform: uppercase;
+            color: var(--accent, #ffaa33);
+            text-decoration: none;
+            border: 1px solid var(--accent-glow, rgba(255,170,51,0.5));
+            padding: 0.7rem 1.4rem;
+            position: relative;
+            overflow: hidden;
+            transition: all 0.3s ease, color 0.6s ease, border-color 0.6s ease;
+            box-shadow: 0 0 12px var(--accent-dim, rgba(255,170,51,0.12)), inset 0 0 12px var(--accent-dim, rgba(255,170,51,0.05));
+            pointer-events: auto;
+            will-change: opacity, transform;
+        }
+        #hero-buttons a::before {
+            content: '';
+            position: absolute;
+            top: 0; left: -100%;
+            width: 100%; height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,170,51,0.2), transparent);
+            transition: left 0.6s ease;
+        }
+        #hero-buttons a:hover {
+            color: #fff;
+            border-color: var(--accent, #ffaa33);
+            box-shadow: 0 0 25px var(--accent-glow, rgba(255,170,51,0.5)), inset 0 0 20px var(--accent-dim, rgba(255,170,51,0.15));
+            text-shadow: 0 0 8px var(--accent-glow, rgba(255,170,51,0.8));
+        }
+        #hero-buttons a:hover::before { left: 100%; }
+
+        /* ─── Scroll Hint ─── */
+        #scroll-hint {
+            position: fixed; bottom: 36px; left: 50%;
+            transform: translateX(-50%);
+            z-index: 10;
+            font-family: 'Orbitron', sans-serif;
+            font-size: 0.7rem;
+            color: var(--accent, #ffaa33);
+            opacity: 0.55;
+            letter-spacing: 0.35em;
+            text-transform: uppercase;
+            pointer-events: none;
+            animation: hintPulse 2.5s ease-in-out infinite;
+            transition: color 0.6s ease;
+        }
+        #scroll-hint .arrow {
+            display: block; text-align: center;
+            margin-top: 8px; font-size: 1.1rem;
+            animation: hintBounce 2.5s ease-in-out infinite;
+        }
+        @keyframes hintPulse { 0%,100%{opacity:.35} 50%{opacity:1} }
+        @keyframes hintBounce { 0%,100%{transform:translateY(0)} 50%{transform:translateY(7px)} }
+
+        /* ─── Content sections ─── */
+        .content-section {
+            position: fixed;
+            top: 50%;
+            transform: translateY(-50%);
+            right: 6%;
+            width: 42%;
+            height: 60vh;
+            z-index: 10;
+            pointer-events: none;
+        }
+        .content-section.active { pointer-events: auto; }
+        .content-block {
+            position: absolute;
+            top: 50%;
+            left: 0;
+            width: 100%;
+            opacity: 0;
+            transform: translateY(-50%) translateY(40px);
+            transition: opacity 0.6s ease, transform 0.6s ease;
+            pointer-events: none;
+        }
+        .content-block.visible {
+            opacity: 1;
+            transform: translateY(-50%) translateY(0);
+            pointer-events: auto;
+        }
+        .content-block h2 {
+            font-family: 'Orbitron', sans-serif;
+            font-size: clamp(1.3rem, 2.8vw, 2.2rem);
+            font-weight: 700;
+            color: var(--accent, #ffaa33);
+            margin-bottom: 1.2rem;
+            text-shadow: 0 0 15px var(--accent-glow, rgba(255,170,51,0.5)), 0 0 30px var(--accent-dim, rgba(255,170,51,0.2));
+            letter-spacing: 0.08em;
+            transition: color 0.6s ease, text-shadow 0.6s ease;
+        }
+        .content-block p {
+            font-family: 'Inter', sans-serif;
+            font-size: clamp(0.95rem, 1.3vw, 1.15rem);
+            font-weight: 300;
+            line-height: 1.85;
+            color: rgba(255,255,255,0.85);
+            text-shadow: 0 0 10px rgba(0,0,0,0.8);
+            margin-bottom: 1.8rem;
+        }
+        .content-block button {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 0.75rem;
+            font-weight: 600;
+            letter-spacing: 0.2em;
+            text-transform: uppercase;
+            color: var(--accent, #ffaa33);
+            background: transparent;
+            border: 1px solid var(--accent-glow, rgba(255,170,51,0.5));
+            padding: 0.85rem 1.7rem;
+            cursor: pointer;
+            position: relative;
+            overflow: hidden;
+            transition: all 0.3s ease, color 0.6s ease, border-color 0.6s ease;
+            box-shadow: 0 0 15px var(--accent-dim, rgba(255,170,51,0.15)), inset 0 0 15px var(--accent-dim, rgba(255,170,51,0.05));
+        }
+        .content-block button::before {
+            content: '';
+            position: absolute;
+            top: 0; left: -100%;
+            width: 100%; height: 100%;
+            background: linear-gradient(90deg, transparent, var(--accent-glow, rgba(255,170,51,0.2)), transparent);
+            transition: left 0.6s ease;
+        }
+        .content-block button:hover {
+            color: #fff;
+            border-color: var(--accent, #ffaa33);
+            box-shadow: 0 0 25px var(--accent-glow, rgba(255,170,51,0.5)), inset 0 0 20px var(--accent-dim, rgba(255,170,51,0.15));
+            text-shadow: 0 0 8px var(--accent-glow, rgba(255,170,51,0.8));
+        }
+        .content-block button:hover::before { left: 100%; }
+
+        /* ─── Footer ─── */
+        #footer {
+            position: fixed;
+            bottom: 0; left: 0;
+            width: 100%;
+            z-index: 10;
+            pointer-events: none;
+            will-change: transform, opacity;
+        }
+        .footer-inner {
+            max-width: 1100px;
+            margin: 0 auto;
+            padding: 3rem 2rem;
+            border-top: 1px solid rgba(255,170,51,0.15);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 1.5rem;
+        }
+.footer-content {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    max-width: 500px;
+}
+.footer-brand {
+    font-family: 'Orbitron', sans-serif;
+    font-weight: 700;
+    font-size: 1.1rem;
+    color: #ffaa33;
+    letter-spacing: 0.15em;
+    text-shadow: 0 0 10px rgba(255,170,51,0.3);
+}
+.footer-description {
+    font-family: 'Inter', sans-serif;
+    font-size: 0.9rem;
+    font-weight: 300;
+    line-height: 1.7;
+    color: rgba(255,255,255,0.6);
+    margin: 0;
+    max-width: 400px;
+}
+.footer-btn {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 0.7rem;
+    font-weight: 600;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: #ffaa33;
+    background: transparent;
+    border: 1px solid rgba(255,170,51,0.5);
+    padding: 0.75rem 1.5rem;
+    cursor: pointer;
+    position: relative;
+    overflow: hidden;
+    transition: all 0.3s ease;
+    box-shadow: 0 0 12px rgba(255,170,51,0.12), inset 0 0 12px rgba(255,170,51,0.05);
+    align-self: flex-start;
+}
+.footer-btn::before {
+    content: '';
+    position: absolute;
+    top: 0; left: -100%;
+    width: 100%; height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255,170,51,0.2), transparent);
+    transition: left 0.6s ease;
+}
+.footer-btn:hover {
+    color: #fff;
+    border-color: #ffaa33;
+    box-shadow: 0 0 22px rgba(255,170,51,0.45), inset 0 0 18px rgba(255,170,51,0.12);
+    text-shadow: 0 0 8px rgba(255,170,51,0.8);
+}
+.footer-btn:hover::before { left: 100%; }
+.footer-btn::before {
+    content: '';
+    position: absolute;
+    top: 0; left: -100%;
+    width: 100%; height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255,170,51,0.2), transparent);
+    transition: left 0.6s ease;
+}
+.footer-btn:hover {
+    color: #fff;
+    border-color: #ffaa33;
+    box-shadow: 0 0 22px rgba(255,170,51,0.45), inset 0 0 18px rgba(255,170,51,0.12);
+    text-shadow: 0 0 8px rgba(255,170,51,0.8);
+}
+.footer-btn:hover::before { left: 100%; }
+        .footer-links a {
+            font-family: 'Inter', sans-serif;
+            font-size: 0.85rem;
+            color: rgba(255,255,255,0.5);
+            text-decoration: none;
+            margin-left: 1.5rem;
+            transition: color 0.3s ease;
+        }
+        .footer-links a:hover { color: #ffaa33; }
+        .footer-copy {
+            font-family: 'Inter', sans-serif;
+            font-size: 0.75rem;
+            color: rgba(255,255,255,0.3);
+            width: 100%;
+            text-align: center;
+            margin-top: 1rem;
+            padding-top: 1rem;
+            border-top: 1px solid rgba(255,255,255,0.06);
+        }
+    </style>
+</head>
+<body>
+
+<div id="three-canvas"></div>
+
+<!-- Title with individual letter spans -->
+<div id="title-wrap">
+    <div id="title"></div>
+    
+    <div id="hero-description"><strong style="display:block;">Simple Chibbit Space </strong>We code chibbits (apps) to simplify the world. From AI integrations to innnovative workflows, join us in our journey to simplify the world.</div>
+</div>
+
+<!-- Hero buttons -->
+<div id="hero-buttons">
+    <a href="#">Apps</a>
+    <a href="#">SignUp</a>
+    <a href="#">Connect</a>
+</div>
+
+<div id="scroll-hint">Scroll to explore<span class="arrow">↓</span></div>
+
+<!-- Content paragraphs (sequential in same spot) -->
+<div class="content-section" id="content-section">
+    <div class="content-block" id="block1">
+        <h2>GLOBAL CONNECTIVITY</h2>
+        <p>In an era where digital boundaries dissolve, our planet becomes interconnected through invisible networks of light and data. Every connection sparks possibility, every node expands human potential. The wireframe you witness represents not just geography, but the intricate web of relationships that bind us all together across continents and cultures.</p>
+        <button>Explore Network</button>
+    </div>
+    <div class="content-block" id="block2">
+        <h2>DIGITAL TRANSFORMATION</h2>
+        <p>Technology reshapes our understanding of what's possible. From the first spark of inspiration to the full realization of a global system, transformation happens in layers. Each particle of innovation contributes to a larger whole, creating structures more complex and beautiful than any single component could achieve alone.</p>
+        <button>Learn More</button>
+    </div>
+    <div class="content-block" id="block3">
+        <h2>FUTURE HORIZONS</h2>
+        <p>As we stand at the threshold of tomorrow, the Earth rotates beneath us—not as a static monument, but as a living, breathing entity in constant motion. The future unfolds with each scroll, each interaction, each moment of curiosity. What will you build on this canvas of infinite possibility?</p>
+        <button>Begin Journey</button>
+    </div>
+</div>
+
+<!-- Footer -->
+<div id="footer">
+    <div class="footer-inner">
+        <div class="footer-content">
+            <span class="footer-brand">WIREFRAME EARTH</span>
+            <p class="footer-description">Every connection tells a story. Every spark ignites possibility. The journey continues beyond the horizon.</p>
+            <button class="footer-btn">Begin Your Story</button>
+        </div>
+        <div class="footer-links">
+            <a href="#">About</a>
+            <a href="#">Projects</a>
+            <a href="#">Contact</a>
+            <a href="#">Privacy</a>
+        </div>
+        <div class="footer-copy">&copy; 2025 Placeholder Title. All rights reserved.</div>
+    </div>
+</div>
+
+<div class="scroll-spacer"></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+(function () {
+    // ─── Configuration ───
+    const CFG = {
+        sparkStartY: 10,
+        earthRadius: 1.8,
+        earthX: -2.1,
+        earthY: 0.0,
+        widthSeg: 32,
+        heightSeg: 18,
+        trailLen: 65,
+    };
+
+    // ─── Easing helpers ───
+    const clamp01 = t => Math.max(0, Math.min(1, t));
+    const easeOutCubic = t => 1 - Math.pow(1 - t, 3);
+    const easeOutQuart = t => 1 - Math.pow(1 - t, 4);
+    const easeInOutCubic = t => t < .5 ? 4*t*t*t : 1 - Math.pow(-2*t+2,3)/2;
+    const easeOutExpo = t => t===1?1:1-Math.pow(2,-10*t);
+    const easeInOutExpo = t => t===0?0:t===1?1:t<.5?Math.pow(2,20*t-10)/2:(2-Math.pow(2,-20*t+10))/2;
+    const lerp = (a,b,t)=>a+(b-a)*t;
+
+    // ─── Glow texture factory ───
+    function makeGlow(inner, outer, sz) {
+        sz = sz||128;
+        const c = document.createElement('canvas'); c.width=c.height=sz;
+        const x = c.getContext('2d'), h=sz/2;
+        const g = x.createRadialGradient(h,h,0,h,h,h);
+        g.addColorStop(0, inner);
+        g.addColorStop(0.35, outer);
+        g.addColorStop(1, 'rgba(0,0,0,0)');
+        x.fillStyle = g; x.fillRect(0,0,sz,sz);
+        return new THREE.CanvasTexture(c);
+    }
+
+    // ─── Shared point shaders ───
+    const pointVert = `
+        attribute float aSize;
+        attribute float aAlpha;
+        varying float vAlpha;
+        void main(){
+            vAlpha = aAlpha;
+            vec4 mv = modelViewMatrix * vec4(position,1.0);
+            gl_PointSize = aSize * (200.0 / -mv.z);
+            gl_Position = projectionMatrix * mv;
+        }`;
+    const pointFrag = `
+        uniform sampler2D uTex;
+        uniform vec3 uColor;
+        varying float vAlpha;
+        void main(){
+            vec4 t = texture2D(uTex, gl_PointCoord);
+            gl_FragColor = vec4(uColor * t.rgb, t.a * vAlpha);
+        }`;
+
+    // Laser line shaders
+    const laserVert = `
+        attribute float aT;
+        varying float vT;
+        void main(){
+            vT = aT;
+            gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+        }`;
+    const laserFrag = `
+        uniform vec3 uColor;
+        uniform float uOpacity;
+        varying float vT;
+        void main(){
+            float a = pow(vT, 1.5) * uOpacity;
+            vec3 col = mix(uColor, vec3(1.0, 1.0, 1.0), pow(vT, 4.0));
+            gl_FragColor = vec4(col, a);
+        }`;
+
+    // ─── Scene / Camera / Renderer ───
+    const scene  = new THREE.Scene();
+    const camera = new THREE.PerspectiveCamera(60, innerWidth/innerHeight, 0.1, 200);
+    camera.position.z = 8;
+    const renderer = new THREE.WebGLRenderer({ antialias:true });
+    renderer.setSize(innerWidth, innerHeight);
+    renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+    renderer.setClearColor(0x000000);
+    document.getElementById('three-canvas').appendChild(renderer.domElement);
+
+    // ─── Background stars ───
+    const STAR_N = 600;
+    const starPos = new Float32Array(STAR_N*3);
+    for(let i=0;i<STAR_N;i++){
+        starPos[i*3]  =(Math.random()-.5)*80;
+        starPos[i*3+1]=(Math.random()-.5)*80;
+        starPos[i*3+2]=-5-Math.random()*60;
+    }
+    const starGeo = new THREE.BufferGeometry();
+    starGeo.setAttribute('position', new THREE.BufferAttribute(starPos,3));
+    scene.add(new THREE.Points(starGeo, new THREE.PointsMaterial({
+        color:0xffffff, size:0.08, transparent:true, opacity:0.55,
+        blending:THREE.AdditiveBlending, depthWrite:false
+    })));
+
+    // ─── Thin vertical streaks (particle effect going up) ───
+    function makeStreakTexture() {
+        const c = document.createElement('canvas');
+        c.width = 4; c.height = 64;
+        const x = c.getContext('2d');
+        // Horizontal thin glow
+        const gH = x.createLinearGradient(0, 0, 4, 0);
+        gH.addColorStop(0, 'rgba(255,255,255,0)');
+        gH.addColorStop(0.5, 'rgba(255,255,255,1)');
+        gH.addColorStop(1, 'rgba(255,255,255,0)');
+        x.fillStyle = gH;
+        x.fillRect(0, 0, 4, 64);
+        // Vertical fade (top/bottom)
+        const gV = x.createLinearGradient(0, 0, 0, 64);
+        gV.addColorStop(0, 'rgba(0,0,0,1)');
+        gV.addColorStop(0.3, 'rgba(0,0,0,0)');
+        gV.addColorStop(0.7, 'rgba(0,0,0,0)');
+        gV.addColorStop(1, 'rgba(0,0,0,1)');
+        x.globalCompositeOperation = 'destination-in';
+        const gM = x.createLinearGradient(0, 0, 0, 64);
+        gM.addColorStop(0, 'rgba(255,255,255,0)');
+        gM.addColorStop(0.5, 'rgba(255,255,255,1)');
+        gM.addColorStop(1, 'rgba(255,255,255,0)');
+        x.fillStyle = gM;
+        x.fillRect(0, 0, 4, 64);
+        const tex = new THREE.CanvasTexture(c);
+        tex.needsUpdate = true;
+        return tex;
+    }
+
+    const STREAK_N = 150;
+    const streakPos = new Float32Array(STREAK_N * 3);
+    const streakSize = new Float32Array(STREAK_N);
+    const streakSpeeds = new Float32Array(STREAK_N);
+    const streakOffsets = new Float32Array(STREAK_N);
+    for (let i = 0; i < STREAK_N; i++) {
+        streakPos[i*3]   = (Math.random() - 0.5) * 40;
+        streakPos[i*3+1] = (Math.random() - 0.5) * 40;
+        streakPos[i*3+2] = -5 - Math.random() * 30;
+        streakSize[i] = 0.3 + Math.random() * 0.8; // varies streak thickness
+        streakSpeeds[i] = 0.3 + Math.random() * 0.7;
+        streakOffsets[i] = Math.random() * 100;
+    }
+    const streakGeo = new THREE.BufferGeometry();
+    streakGeo.setAttribute('position', new THREE.BufferAttribute(streakPos, 3));
+    streakGeo.setAttribute('aSize', new THREE.BufferAttribute(streakSize, 1));
+
+    // Custom shader for thin vertical streaks
+    const streakVert = `
+        attribute float aSize;
+        varying float vSize;
+        void main(){
+            vSize = aSize;
+            vec4 mv = modelViewMatrix * vec4(position, 1.0);
+            // Large point size so the fragment shader can draw an elongated streak
+            gl_PointSize = aSize * (300.0 / -mv.z);
+            gl_Position = projectionMatrix * mv;
+        }`;
+    const streakFrag = `
+        uniform vec3 uColor;
+        uniform float uOpacity;
+        void main(){
+            vec2 uv = gl_PointCoord;
+            // Thin horizontal falloff (sharp bright center line)
+            float horizontal = 1.0 - abs(uv.x - 0.5) * 2.0;
+            horizontal = pow(max(horizontal, 0.0), 6.0);
+            // Elongated vertical falloff (soft at ends)
+            float vertical = 1.0 - abs(uv.y - 0.5) * 2.0;
+            vertical = pow(max(vertical, 0.0), 0.35);
+            float alpha = horizontal * vertical * uOpacity;
+            gl_FragColor = vec4(uColor * 1.5, alpha);
+        }`;
+
+    const streakMat = new THREE.ShaderMaterial({
+        uniforms: {
+            uColor: { value: new THREE.Color(0xffaa33) },
+            uOpacity: { value: 0.4 }
+        },
+        vertexShader: streakVert,
+        fragmentShader: streakFrag,
+        transparent: true,
+        blending: THREE.AdditiveBlending,
+        depthWrite: false
+    });
+    const streakPts = new THREE.Points(streakGeo, streakMat);
+    streakPts.frustumCulled = false;
+    scene.add(streakPts);
+
+    // ─── Textures ───
+    const texGlow  = makeGlow('rgba(255,140,40,0.35)','rgba(255,60,0,0)', 256);
+    const texSoftGlow = makeGlow('rgba(255,210,80,0.6)','rgba(255,100,0,0)', 128);
+
+    // ─── Laser Beam (clean line) ───
+    const TL = CFG.trailLen;
+    const laserPosArr = new Float32Array(TL * 3);
+    const laserTArr   = new Float32Array(TL);
+    for (let i = 0; i < TL; i++) laserTArr[i] = i / (TL - 1);
+    const laserGeo = new THREE.BufferGeometry();
+    laserGeo.setAttribute('position', new THREE.BufferAttribute(laserPosArr, 3));
+    laserGeo.setAttribute('aT', new THREE.BufferAttribute(laserTArr, 1));
+
+    const laserMat = new THREE.ShaderMaterial({
+        uniforms: { uColor: { value: new THREE.Color(0xffaa33) }, uOpacity: { value: 0 } },
+        vertexShader: laserVert, fragmentShader: laserFrag,
+        transparent: true, blending: THREE.AdditiveBlending, depthWrite: false
+    });
+    const laserBeam = new THREE.Line(laserGeo, laserMat);
+    laserBeam.frustumCulled = false;
+    scene.add(laserBeam);
+
+    // ─── Spark head (small glow at tip) ───
+    const sparkHeadMat = new THREE.SpriteMaterial({
+        map: texSoftGlow, blending: THREE.AdditiveBlending, transparent: true, opacity: 0
+    });
+    const sparkHead = new THREE.Sprite(sparkHeadMat);
+    sparkHead.scale.set(0.35, 0.35, 1);
+    scene.add(sparkHead);
+
+    const trailHist = [];
+
+    // ─── Globe group ───
+    const globe = new THREE.Group();
+    globe.visible = false;
+    globe.position.set(CFG.earthX, CFG.earthY, 0.5);
+    scene.add(globe);
+
+    // ─── Wireframe geometry ───
+    const sphGeo  = new THREE.SphereGeometry(CFG.earthRadius, CFG.widthSeg, CFG.heightSeg);
+    const wireGeo = new THREE.WireframeGeometry(sphGeo);
+    const wTarget = new Float32Array(wireGeo.attributes.position.array);
+    const wCurr   = new Float32Array(wTarget.length).fill(0);
+
+    const animGeo = new THREE.BufferGeometry();
+    animGeo.setAttribute('position', new THREE.BufferAttribute(wCurr,3));
+
+    const wireMat = new THREE.LineBasicMaterial({
+        color:0xffaa33, transparent:true, opacity:0, blending:THREE.AdditiveBlending
+    });
+    const wireLines = new THREE.LineSegments(animGeo, wireMat);
+    globe.add(wireLines);
+
+    // ─── Unique vertices ───
+    const uMap = new Map();
+    for(let i=0;i<wTarget.length;i+=3){
+        const k = wTarget[i].toFixed(2)+'_'+wTarget[i+1].toFixed(2)+'_'+wTarget[i+2].toFixed(2);
+        if(!uMap.has(k)) uMap.set(k,{x:wTarget[i],y:wTarget[i+1],z:wTarget[i+2]});
+    }
+    const uVerts = Array.from(uMap.values());
+    const VC = uVerts.length;
+
+    const vPos   = new Float32Array(VC*3);
+    const vSize  = new Float32Array(VC);
+    const vAlpha = new Float32Array(VC);
+    const vTarg  = [];
+    const vDelay = [];
+
+    for(let i=0;i<VC;i++){
+        const v = uVerts[i];
+        vTarg.push(v.x, v.y, v.z);
+        vDelay.push(Math.random()*0.35);
+    }
+
+    const vGeo = new THREE.BufferGeometry();
+    vGeo.setAttribute('position', new THREE.BufferAttribute(vPos,3));
+    vGeo.setAttribute('aSize',   new THREE.BufferAttribute(vSize,1));
+    vGeo.setAttribute('aAlpha',  new THREE.BufferAttribute(vAlpha,1));
+
+    const vMat = new THREE.ShaderMaterial({
+        uniforms:{ uTex:{value:texSoftGlow}, uColor:{value:new THREE.Color(0xffcc66)} },
+        vertexShader:pointVert, fragmentShader:pointFrag,
+        transparent:true, blending:THREE.AdditiveBlending, depthWrite:false
+    });
+    const vPts = new THREE.Points(vGeo, vMat);
+    vPts.visible = false;
+    globe.add(vPts);
+
+    // ─── Center glow inside globe ───
+    const cGlowMat = new THREE.SpriteMaterial({
+        map:texGlow, blending:THREE.AdditiveBlending, transparent:true, opacity:0
+    });
+    const cGlow = new THREE.Sprite(cGlowMat);
+    cGlow.scale.set(5,5,1);
+    globe.add(cGlow);
+
+    // ─── Forking Laser Lines ───
+    const forkPos = new Float32Array(VC * 2 * 3);
+    const forkT = new Float32Array(VC * 2);
+    for(let i = 0; i < VC; i++) {
+        forkT[i*2]   = 0;
+        forkT[i*2+1] = 1;
+    }
+    const forkGeo = new THREE.BufferGeometry();
+    forkGeo.setAttribute('position', new THREE.BufferAttribute(forkPos, 3));
+    forkGeo.setAttribute('aT', new THREE.BufferAttribute(forkT, 1));
+    const forkMat = new THREE.ShaderMaterial({
+        uniforms: { uColor: { value: new THREE.Color(0xffaa33) }, uOpacity: { value: 0 } },
+        vertexShader: laserVert, fragmentShader: laserFrag,
+        transparent: true, blending: THREE.AdditiveBlending, depthWrite: false
+    });
+    const forkLines = new THREE.LineSegments(forkGeo, forkMat);
+    forkLines.visible = false;
+    globe.add(forkLines);
+
+    // ─── Exit spark (for collapse + zoom-out) ───
+    const exitSparkMat = new THREE.SpriteMaterial({
+        map: texSoftGlow, blending: THREE.AdditiveBlending, transparent: true, opacity: 0
+    });
+    const exitSpark = new THREE.Sprite(exitSparkMat);
+    exitSpark.scale.set(0.4, 0.4, 1);
+    exitSpark.visible = false;
+    scene.add(exitSpark);
+
+    const exitLaserPos = new Float32Array(TL * 3);
+    const exitLaserT = new Float32Array(TL);
+    for (let i = 0; i < TL; i++) exitLaserT[i] = i / (TL - 1);
+    const exitLaserGeo = new THREE.BufferGeometry();
+    exitLaserGeo.setAttribute('position', new THREE.BufferAttribute(exitLaserPos, 3));
+    exitLaserGeo.setAttribute('aT', new THREE.BufferAttribute(exitLaserT, 1));
+    const exitLaserMat = new THREE.ShaderMaterial({
+        uniforms: { uColor: { value: new THREE.Color(0xffaa33) }, uOpacity: { value: 0 } },
+        vertexShader: laserVert, fragmentShader: laserFrag,
+        transparent: true, blending: THREE.AdditiveBlending, depthWrite: false
+    });
+    const exitLaser = new THREE.Line(exitLaserGeo, exitLaserMat);
+    exitLaser.frustumCulled = false;
+    exitLaser.visible = false;
+    scene.add(exitLaser);
+    const exitTrail = [];
+
+    // ─── Scroll state ───
+    let rawScroll = 0, smoothScroll = 0;
+    window.addEventListener('scroll', () => {
+        rawScroll = scrollY / (document.body.scrollHeight - innerHeight);
+    }, {passive:true});
+
+    // ─── DOM refs ───
+    const titleEl      = document.getElementById('title');
+    const titleWrap    = document.getElementById('title-wrap');
+    const heroButtons  = document.getElementById('hero-buttons');
+    const hintEl       = document.getElementById('scroll-hint');
+    const block1       = document.getElementById('block1');
+    const block2       = document.getElementById('block2');
+    const block3       = document.getElementById('block3');
+    const contentSection = document.getElementById('content-section');
+    const footerEl     = document.getElementById('footer');
+
+    // ─── Phase helper ───
+    const phase = (s, start, end) => clamp01((s-start)/(end-start));
+
+    // ─── Theme colors per paragraph ───
+    const themes = {
+        default: { bg: [0,0,0], accent: [255,170,51], name: 'orange' },
+        para1:   { bg: [0,10,22], accent: [60,200,255], name: 'cyan' },
+        para2:   { bg: [16,0,26], accent: [255,80,200], name: 'magenta' },
+        para3:   { bg: [0,26,20], accent: [80,255,170], name: 'teal' }
+    };
+
+    function getTheme(sp) {
+        // Returns interpolated theme based on scroll position
+        let from, to, t;
+        if (sp < 0.48) {
+            return themes.default;
+        } else if (sp < 0.50) {
+            // transition default → para1
+            t = (sp - 0.48) / 0.02;
+            from = themes.default; to = themes.para1;
+        } else if (sp < 0.64) {
+            return themes.para1;
+        } else if (sp < 0.66) {
+            // transition para1 → para2
+            t = (sp - 0.64) / 0.02;
+            from = themes.para1; to = themes.para2;
+        } else if (sp < 0.80) {
+            return themes.para2;
+        } else if (sp < 0.82) {
+            // transition para2 → para3
+            t = (sp - 0.80) / 0.02;
+            from = themes.para2; to = themes.para3;
+        } else if (sp < 0.92) {
+            return themes.para3;
+        } else if (sp < 0.95) {
+            // transition para3 → default
+            t = (sp - 0.92) / 0.03;
+            from = themes.para3; to = themes.default;
+        } else {
+            return themes.default;
+        }
+        return {
+            bg: [
+                Math.round(lerp(from.bg[0], to.bg[0], t)),
+                Math.round(lerp(from.bg[1], to.bg[1], t)),
+                Math.round(lerp(from.bg[2], to.bg[2], t))
+            ],
+            accent: [
+                Math.round(lerp(from.accent[0], to.accent[0], t)),
+                Math.round(lerp(from.accent[1], to.accent[1], t)),
+                Math.round(lerp(from.accent[2], to.accent[2], t))
+            ]
+        };
+    }
+
+    // ─── Split title into individual char spans ───
+    const TITLE_TEXT = "SC SPACE";
+    const chars = [];
+    TITLE_TEXT.split('').forEach(ch => {
+        const span = document.createElement('span');
+        span.className = 'char';
+        span.textContent = ch === ' ' ? '\u00A0' : ch;
+        titleEl.appendChild(span);
+        chars.push(span);
+    });
+
+    // ─── Compute projected spark-start screen position ───
+    function getSparkScreenPos() {
+        const v = new THREE.Vector3(0, CFG.sparkStartY, 0);
+        v.project(camera);
+        return {
+            x: (v.x * 0.5 + 0.5) * innerWidth,
+            y: (-v.y * 0.5 + 0.5) * innerHeight
+        };
+    }
+
+    // ─── Animate ───
+    let lastT = 0;
+    function animate(time) {
+        requestAnimationFrame(animate);
+        lastT = time;
+        smoothScroll = lerp(smoothScroll, rawScroll, 0.06);
+        const sp = smoothScroll;
+
+        // Get current theme
+        const theme = getTheme(sp);
+        const [bgR, bgG, bgB] = theme.bg;
+        const [acR, acG, acB] = theme.accent;
+        
+        // Apply theme to background
+        renderer.setClearColor(new THREE.Color(`rgb(${bgR},${bgG},${bgB})`));
+        document.body.style.background = `rgb(${bgR},${bgG},${bgB})`;
+        
+        // Apply theme to shader uniforms
+        laserMat.uniforms.uColor.value.setRGB(acR/255, acG/255, acB/255);
+        forkMat.uniforms.uColor.value.setRGB(acR/255, acG/255, acB/255);
+        wireMat.color.setRGB(acR/255, acG/255, acB/255);
+        vMat.uniforms.uColor.value.setRGB(acR/255, acG/255, acB/255);
+        exitLaserMat.uniforms.uColor.value.setRGB(acR/255, acG/255, acB/255);
+        exitSparkMat.color.setRGB(acR/255, acG/255, acB/255);
+        streakMat.uniforms.uColor.value.setRGB(acR/255, acG/255, acB/255);
+        
+        // Apply theme to DOM elements
+        document.documentElement.style.setProperty('--accent', `rgb(${acR},${acG},${acB})`);
+        document.documentElement.style.setProperty('--accent-glow', `rgba(${acR},${acG},${acB},0.5)`);
+        document.documentElement.style.setProperty('--accent-dim', `rgba(${acR},${acG},${acB},0.15)`);
+
+        // Update streaks drifting upward
+        for (let i = 0; i < STREAK_N; i++) {
+            streakPos[i*3+1] += streakSpeeds[i] * 0.015;
+            // Wrap around when going off top
+            if (streakPos[i*3+1] > 25) {
+                streakPos[i*3+1] = -25;
+                streakPos[i*3] = (Math.random() - 0.5) * 40;
+            }
+        }
+        streakGeo.attributes.position.needsUpdate = true;
+
+        // ═══════════════════════════════════════
+        // PHASE 0: Title letters fuse into spark
+        // ═══════════════════════════════════════
+        const fuseT = phase(sp, 0, 0.08);
+        const spScreen = getSparkScreenPos();
+        const centerW = innerWidth / 2;
+        const centerH = innerHeight / 2;
+
+        chars.forEach((ch, idx) => {
+            if (fuseT <= 0) {
+                ch.style.transform = '';
+                ch.style.opacity = '1';
+                ch.style.filter = 'none';
+                ch.style.color = '#fff';
+                ch.style.textShadow = `0 0 30px rgba(${acR},${acG},${acB},0.5), 0 0 60px rgba(${acR},${acG},${acB},0.2)`;
+                return;
+            }
+            // Each letter has a slightly different timing
+            const stagger = idx * 0.04;
+            const lt = clamp01((fuseT - stagger * 0.1) / (0.92 - stagger * 0.08));
+            const et = easeInOutExpo(clamp01(lt));
+
+            const offX = lerp(0, spScreen.x - centerW, et);
+            const offY = lerp(0, spScreen.y - centerH, et);
+            const scl = lerp(1, 0.01, et);
+            const blur = lerp(0, 4, et);
+            // Glow color transition from white to theme accent
+            const r = Math.round(lerp(255, acR, et));
+            const g = Math.round(lerp(255, acG, et));
+            const b = Math.round(lerp(255, acB, et));
+            const glow = lerp(30, 20, et);
+
+            ch.style.transform = `translate(${offX}px, ${offY}px) scale(${scl})`;
+            ch.style.opacity = 1 - et;
+            ch.style.filter = `blur(${blur}px)`;
+            ch.style.color = `rgb(${r},${g},${b})`;
+            ch.style.textShadow = `0 0 ${glow}px rgba(${r},${g},${b},${0.5 - et*0.3})`;
+        });
+
+        // Hero description also fuses into spark
+        const descEl = document.getElementById('hero-description');
+        if (fuseT > 0) {
+            const et = easeInOutExpo(clamp01(fuseT * 1.1));
+            const offY = lerp(0, spScreen.y - centerH, et);
+            descEl.style.transform = `translateY(${offY}px) scale(${lerp(1, 0.01, et)})`;
+            descEl.style.opacity = 1 - et;
+            descEl.style.filter = `blur(${lerp(0, 4, et)}px)`;
+            descEl.style.color = `rgb(${Math.round(lerp(255, acR, et))},${Math.round(lerp(255, acG, et))},${Math.round(lerp(255, acB, et))})`;
+        } else {
+            descEl.style.transform = '';
+            descEl.style.opacity = '1';
+            descEl.style.filter = 'none';
+            descEl.style.color = 'rgba(255,255,255,0.75)';
+        }
+
+        // Hero buttons fade + move toward spark
+        if (fuseT > 0) {
+            const bt = easeOutCubic(fuseT);
+            heroButtons.style.opacity = 1 - bt;
+            heroButtons.style.transform = `translate(-50%, -50%) translateY(${bt * (spScreen.y - centerH - innerHeight*0.1)}px)`;
+        } else {
+            heroButtons.style.opacity = '1';
+            heroButtons.style.transform = 'translate(-50%, -50%)';
+        }
+
+        // Scroll hint fades at start and also at footer
+        const hintFadeStart = 1 - easeOutCubic(phase(sp, 0, 0.06));
+        const hintFadeEnd = sp > 0.92 ? 1 - easeOutCubic(phase(sp, 0.92, 0.96)) : 1;
+        hintEl.style.opacity = hintFadeStart * hintFadeEnd;
+
+        // ═══════════════════════════════════════
+        // PHASE 1: Laser descends from spark point
+        // ═══════════════════════════════════════
+        const sparkActive = sp > 0.05 && sp < 0.38;
+        const descT = phase(sp, 0.06, 0.24);
+        const turnT = phase(sp, 0.22, 0.34);
+
+        if (sparkActive) {
+            sparkHead.visible = true;
+            laserBeam.visible = true;
+
+            const descE = easeInOutCubic(descT);
+            const sy = lerp(CFG.sparkStartY, CFG.sparkEndY || 0, descE);
+            let fx = 0, fy = sy, fz = 0;
+
+            if (turnT > 0) {
+                const tt = easeInOutCubic(turnT);
+                fx = lerp(0, CFG.earthX, tt);
+                fy = lerp(sy, CFG.earthY, tt);
+                fz = lerp(0, 0.5, tt);
+            }
+
+            sparkHead.position.set(fx, fy, fz);
+            const pulse = 1 + Math.sin(time*0.012)*0.15;
+            sparkHead.scale.set(0.3*pulse, 0.3*pulse, 1);
+            sparkHeadMat.opacity = 0.95;
+
+            trailHist.unshift({x:fx, y:fy, z:fz});
+            while(trailHist.length > TL) trailHist.pop();
+            while(trailHist.length < TL) trailHist.push({x:0, y:CFG.sparkStartY+2, z:0});
+
+            for (let i = 0; i < TL; i++) {
+                const p = trailHist[(TL-1)-i];
+                laserPosArr[i*3]   = p.x;
+                laserPosArr[i*3+1] = p.y;
+                laserPosArr[i*3+2] = p.z;
+            }
+            laserGeo.attributes.position.needsUpdate = true;
+
+            const fadeOut = sp > 0.34 ? 1 - (sp - 0.34) / 0.04 : 1;
+            laserMat.uniforms.uOpacity.value = clamp01(fadeOut);
+            sparkHeadMat.opacity = 0.95 * clamp01(fadeOut);
+        } else {
+            sparkHead.visible = false;
+            laserBeam.visible = false;
+            trailHist.length = 0;
+            laserMat.uniforms.uOpacity.value = 0;
+        }
+
+        // ═══════════════════════════════════════
+        // PHASE 2: Globe formation (forking lines)
+        // ═══════════════════════════════════════
+        const formT = phase(sp, 0.32, 0.58);
+
+        if(formT > 0){
+            globe.visible = true;
+            vPts.visible  = true;
+
+            if(formT < 0.95){
+                forkLines.visible = true;
+                const forkAnim = clamp01(formT / 0.75);
+                const forkEased = easeOutQuart(forkAnim);
+                const forkFade = formT < 0.55 ? 1 : 1 - (formT - 0.55) / 0.40;
+                forkMat.uniforms.uOpacity.value = forkFade * 0.95;
+
+                const twistAngle = (1 - forkEased) * Math.PI * 2.5;
+
+                for(let i=0; i<VC; i++){
+                    const tx = vTarg[i*3], ty = vTarg[i*3+1], tz = vTarg[i*3+2];
+                    forkPos[i*6]   = 0; forkPos[i*6+1] = 0; forkPos[i*6+2] = 0;
+
+                    const cosA = Math.cos(twistAngle);
+                    const sinA = Math.sin(twistAngle);
+                    const rotX = tx * cosA - tz * sinA;
+                    const rotZ = tx * sinA + tz * cosA;
+                    const currX = rotX * forkEased;
+                    const currY = ty * forkEased;
+                    const currZ = rotZ * forkEased;
+
+                    forkPos[i*6+3] = currX;
+                    forkPos[i*6+4] = currY;
+                    forkPos[i*6+5] = currZ;
+
+                    vPos[i*3] = currX; vPos[i*3+1] = currY; vPos[i*3+2] = currZ;
+                    const d = vDelay[i];
+                    const lt = clamp01((formT-d)/(1-d));
+                    vSize[i] = lt > 0 ? 1.8 + (1-forkEased)*2.5 : 0;
+                    vAlpha[i]= lt > 0 ? 0.55 : 0;
+                }
+                forkGeo.attributes.position.needsUpdate = true;
+                vGeo.attributes.position.needsUpdate = true;
+                vGeo.attributes.aSize.needsUpdate = true;
+                vGeo.attributes.aAlpha.needsUpdate = true;
+            } else {
+                forkLines.visible = false;
+                for(let i=0; i<VC; i++){
+                    vPos[i*3]=vTarg[i*3]; vPos[i*3+1]=vTarg[i*3+1]; vPos[i*3+2]=vTarg[i*3+2];
+                }
+                vGeo.attributes.position.needsUpdate = true;
+            }
+
+            const wT = clamp01((formT-0.2)/0.8);
+            const wE = easeOutExpo(wT);
+            for(let i=0;i<wCurr.length;i++) wCurr[i]=wTarget[i]*wE;
+            animGeo.attributes.position.needsUpdate=true;
+            wireMat.opacity = clamp01((formT-0.3)/0.7) * 0.55;
+
+            cGlowMat.opacity = clamp01(formT/0.3)*0.22;
+            globe.rotation.y = formT*0.5;
+            globe.rotation.x = 0.2*formT;
+            globe.rotation.z = 0.05*formT;
+        } else {
+            globe.visible = false;
+            forkLines.visible = false;
+        }
+
+        // ═══════════════════════════════════════
+        // PHASE 3: Globe rotation + Content
+        // ═══════════════════════════════════════
+        const rotT = phase(sp, 0.55, 0.92);
+
+        if(rotT > 0 && formT >= 1){
+            wireMat.opacity = 0.55 + Math.sin(time*0.002)*0.06;
+            globe.rotation.y = 0.5 + rotT*Math.PI*2.5;
+            globe.rotation.x = 0.18 + Math.sin(rotT*Math.PI)*0.08;
+            globe.rotation.z = 0.04;
+
+            const pv = Math.sin(time*0.003)*0.2+0.7;
+            for(let i=0;i<VC;i++){
+                vAlpha[i] = 0.4*pv;
+                vSize[i]  = 2*pv;
+            }
+            vGeo.attributes.aAlpha.needsUpdate=true;
+            vGeo.attributes.aSize.needsUpdate=true;
+
+            cGlowMat.opacity = 0.22 + Math.sin(time*0.002)*0.08;
+        }
+
+        // Content blocks (sequential, same spot)
+        if (sp >= 0.50) contentSection.classList.add('active');
+        else contentSection.classList.remove('active');
+
+        if (sp >= 0.50 && sp < 0.64) block1.classList.add('visible');
+        else block1.classList.remove('visible');
+
+        if (sp >= 0.66 && sp < 0.80) block2.classList.add('visible');
+        else block2.classList.remove('visible');
+
+        if (sp >= 0.82 && sp < 0.94) block3.classList.add('visible');
+        else block3.classList.remove('visible');
+
+        // ═══════════════════════════════════════
+        // PHASE 4: Globe collapse → spark zooms right + footer
+        // ═══════════════════════════════════════
+        const collapseT = phase(sp, 0.90, 0.96);
+        const zoomT     = phase(sp, 0.94, 0.99);
+        const footerT   = phase(sp, 0.95, 0.995);
+
+        if (collapseT > 0){
+            // Shrink wireframe
+            const shrink = 1 - easeOutExpo(clamp01(collapseT));
+            for(let i=0;i<wCurr.length;i++) wCurr[i]=wTarget[i]*shrink;
+            animGeo.attributes.position.needsUpdate=true;
+            wireMat.opacity = shrink * 0.55;
+            cGlowMat.opacity = shrink * 0.22;
+
+            // Shrink vertex positions
+            for(let i=0;i<VC;i++){
+                vPos[i*3]   = vTarg[i*3]*shrink;
+                vPos[i*3+1] = vTarg[i*3+1]*shrink;
+                vPos[i*3+2] = vTarg[i*3+2]*shrink;
+                vSize[i] = shrink * 2;
+                vAlpha[i] = shrink * 0.4;
+            }
+            vGeo.attributes.position.needsUpdate=true;
+            vGeo.attributes.aSize.needsUpdate=true;
+            vGeo.attributes.aAlpha.needsUpdate=true;
+
+            if(shrink <= 0.01){
+                globe.visible = false;
+                forkLines.visible = false;
+            }
+        } else if(collapseT <= 0 && sp >= 0.92){
+            globe.visible = false;
+        }
+
+        // Exit spark appears where globe was, then zooms right
+        if (zoomT > 0){
+            exitSpark.visible = true;
+            exitLaser.visible = true;
+
+            const zt = easeInOutExpo(zoomT);
+            const startX = CFG.earthX;
+            const startY = CFG.earthY;
+            const endX = innerWidth / 2; // screen-right in world coords
+            const ey = lerp(startY, -CFG.sparkStartY - 4, zt);
+            const ex = lerp(startX, 12, zt); // fly way off to the right
+
+            // Map screen right to world coordinates roughly
+            // Camera at z=8, fov=60 → screen width ≈ 9 units at z=8
+            const worldRight = 10;
+            exitSpark.position.set(lerp(startX, worldRight, zt), lerp(startY, -8, zt), lerp(0.5, 2, zt));
+            
+            exitSpark.scale.set(0.35*(1-zt*0.5), 0.35*(1-zt*0.5), 1);
+            exitSparkMat.opacity = clamp01(1 - zt*1.2);
+
+            // Build exit trail
+            exitTrail.unshift({x:exitSpark.position.x, y:exitSpark.position.y, z:exitSpark.position.z});
+            while(exitTrail.length > TL) exitTrail.pop();
+            while(exitTrail.length < TL) exitTrail.push({x:worldRight+5, y:-10, z:3});
+
+            for (let i = 0; i < TL; i++) {
+                const p = exitTrail[(TL-1)-i];
+                exitLaserPos[i*3]   = p.x;
+                exitLaserPos[i*3+1] = p.y;
+                exitLaserPos[i*3+2] = p.z;
+            }
+            exitLaserGeo.attributes.position.needsUpdate = true;
+            exitLaserMat.uniforms.uOpacity.value = clamp01(1 - zt*1.5);
+        } else {
+            exitSpark.visible = false;
+            exitLaser.visible = false;
+            exitTrail.length = 0;
+            exitLaserMat.uniforms.uOpacity.value = 0;
+        }
+
+        // Hide content blocks during collapse
+        if(sp >= 0.92){
+            block1.classList.remove('visible');
+            block2.classList.remove('visible');
+            block3.classList.remove('visible');
+            contentSection.classList.remove('active');
+        }
+
+        // Footer scrolls up into view
+        if (footerT > 0){
+            const ft = easeOutCubic(footerT);
+            footerEl.style.transform = `translateY(${(1-ft)*100}%)`;
+            footerEl.style.opacity = ft;
+            footerEl.style.pointerEvents = ft > 0.5 ? 'auto' : 'none';
+        } else {
+            footerEl.style.transform = 'translateY(100%)';
+            footerEl.style.opacity = '0';
+            footerEl.style.pointerEvents = 'none';
+        }
+
+        renderer.render(scene, camera);
+    }
+    animate(0);
+
+    // ─── Resize ───
+    window.addEventListener('resize', () => {
+        camera.aspect = innerWidth/innerHeight;
+        camera.updateProjectionMatrix();
+        renderer.setSize(innerWidth, innerHeight);
+    });
+
+})();
+</script>
+</body>
+</html>
