@@ -1,0 +1,1729 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Forge — Agentic Coding IDE</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = { theme: { extend: {
+            colors: { ide: {
+                950:'#050505',900:'#0a0a0b',850:'#111113',800:'#18181b',700:'#27272a',
+                600:'#3f3f46',500:'#52525b',400:'#a1a1aa',300:'#d4d4d8',200:'#e4e4e7',100:'#f4f4f5',50:'#fafafa'
+            }},
+            fontFamily: {
+                mono:['ui-monospace','SFMono-Regular','Menlo','Monaco','Consolas','monospace'],
+                sans:['ui-sans-serif','system-ui','-apple-system','Segoe UI','Roboto','sans-serif']
+            }
+        }}}
+    </script>
+    <style>
+        ::-webkit-scrollbar{width:7px;height:7px}
+        ::-webkit-scrollbar-track{background:transparent}
+        ::-webkit-scrollbar-thumb{background:#3f3f46;border-radius:4px}
+        ::-webkit-scrollbar-thumb:hover{background:#52525b}
+        .node-pulse{animation:pulse 2s cubic-bezier(.4,0,.6,1) infinite}
+        @keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+        .typing-dot{animation:typing 1.4s infinite ease-in-out both}
+        .typing-dot:nth-child(1){animation-delay:-.32s}
+        .typing-dot:nth-child(2){animation-delay:-.16s}
+        @keyframes typing{0%,80%,100%{transform:scale(0)}40%{transform:scale(1)}}
+        .fade-in{animation:fadeIn .3s ease}
+        @keyframes fadeIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
+        textarea#codeEditor{tab-size:2;line-height:1.5rem}
+        #lineNumbers div{line-height:1.5rem;height:1.5rem}
+        .tip{position:absolute;left:3.5rem;top:50%;transform:translateY(-50%);background:#18181b;color:#f4f4f5;font-size:11px;padding:2px 8px;border-radius:6px;border:1px solid #27272a;opacity:0;pointer-events:none;transition:opacity .15s;white-space:nowrap;z-index:50}
+        .group:hover .tip{opacity:1}
+    </style>
+</head>
+<body class="bg-ide-950 text-ide-100 font-sans h-screen w-screen overflow-hidden">
+
+<div class="flex h-full w-full">
+    <!-- ICON RAIL -->
+    <div class="w-14 flex flex-col items-center py-3 gap-1 bg-ide-900 border-r border-ide-800 z-20 shrink-0">
+        <button class="mb-3 p-2 rounded-lg bg-orange-600 text-white shadow-lg shadow-orange-900/30 hover:scale-105 transition-transform" onclick="switchPanel('chat')" title="Forge">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 18.657A8 8 0 016.343 7.343S7 9 9 10c0-2 .5-5 2.986-7C14 5 16.09 5.24 17 7.156c.914 1.918.612 3.842-.344 5.842zM9.879 16.121A3 3 0 1012.015 11L11 14H9c0 .768.293 1.536.879 2.121z"/></svg>
+        </button>
+        <button id="rail-chat" class="rail-btn p-2 rounded-lg text-ide-100 bg-ide-800 transition relative group" onclick="switchPanel('chat')" title="Agent">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.86 9.86 0 01-4-.8L3 20l1.3-3.9A7.96 7.96 0 013 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"/></svg>
+            <span class="tip">Agent</span>
+        </button>
+        <button id="rail-code" class="rail-btn p-2 rounded-lg text-ide-400 hover:text-ide-100 hover:bg-ide-800 transition relative group" onclick="switchPanel('code')" title="Editor">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4"/></svg>
+            <span class="tip">Editor</span>
+        </button>
+        <button class="rail-btn p-2 rounded-lg text-ide-400 hover:text-ide-100 hover:bg-ide-800 transition relative group" onclick="focusTerminal()" title="Terminal">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 9l3 3-3 3m5 0h3M3 12a9 9 0 1118 0 9 9 0 01-18 0z"/></svg>
+            <span class="tip">Terminal</span>
+        </button>
+        <button class="rail-btn p-2 rounded-lg text-ide-400 hover:text-ide-100 hover:bg-ide-800 transition relative group" onclick="newFilePrompt()" title="New File">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 13h6m-3-3v6m5 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+            <span class="tip">New File</span>
+        </button>
+    </div>
+
+    <!-- FILE EXPLORER -->
+    <div class="w-56 bg-ide-900 border-r border-ide-800 flex flex-col shrink-0">
+        <div class="h-10 flex items-center justify-between px-3 border-b border-ide-800">
+            <span class="text-xs font-semibold text-ide-400 uppercase tracking-wider">Forge</span>
+            <button class="text-ide-400 hover:text-ide-100 p-1 rounded hover:bg-ide-800" onclick="newFilePrompt()" title="New file">
+                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+            </button>
+        </div>
+        <div class="px-2 py-2">
+            <div class="bg-ide-800 rounded px-2 py-1 flex items-center">
+                <svg class="w-3 h-3 mr-2 text-ide-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+                <input id="fileSearch" type="text" placeholder="Search files..." class="bg-transparent text-xs text-ide-200 placeholder-ide-500 outline-none w-full" oninput="renderFileTree()">
+            </div>
+        </div>
+        <div class="flex-1 overflow-y-auto px-2 pb-2 text-sm font-mono" id="fileTree"></div>
+        <div class="px-3 py-2 border-t border-ide-800 text-[10px] text-ide-500 flex items-center justify-between">
+            <span id="fileCount">0 files</span>
+            <span class="flex items-center gap-1"><span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>main</span>
+        </div>
+    </div>
+
+    <!-- CENTER -->
+    <div class="flex-1 flex flex-col min-w-0 bg-ide-950">
+        <div class="h-9 bg-ide-900 border-b border-ide-800 flex items-center px-2 text-xs overflow-x-auto shrink-0" id="tabBar"></div>
+
+        <div id="panel-chat" class="flex-1 flex flex-col min-h-0">
+            <div class="flex-1 overflow-y-auto p-5 space-y-4" id="chatFeed"></div>
+            <div class="p-3 bg-ide-900 border-t border-ide-800">
+                <div id="agentStatus" class="hidden mb-2 flex items-center gap-2 text-[11px] text-orange-300">
+                    <span class="flex gap-1">
+                        <span class="typing-dot w-1.5 h-1.5 bg-orange-400 rounded-full"></span>
+                        <span class="typing-dot w-1.5 h-1.5 bg-orange-400 rounded-full"></span>
+                        <span class="typing-dot w-1.5 h-1.5 bg-orange-400 rounded-full"></span>
+                    </span>
+                    <span id="agentStatusText">Agent is working...</span>
+                    <button onclick="stopAgent()" class="ml-auto text-red-400 hover:text-red-300 px-2 py-0.5 rounded border border-red-500/30 hover:bg-red-500/10">Stop</button>
+                </div>
+                <div class="relative flex items-end bg-ide-800 border border-ide-700 rounded-xl overflow-hidden focus-within:border-orange-500 transition-colors shadow-lg">
+                    <button class="p-3 text-ide-400 hover:text-ide-100 hover:bg-ide-700 transition" onclick="attachContext()" title="Attach current file">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13"/></svg>
+                    </button>
+                    <textarea id="promptInput" rows="1" placeholder="Describe a task — the agent will plan, read, edit, search, and run commands…" class="flex-1 bg-transparent text-sm text-ide-100 placeholder-ide-500 outline-none py-3 pr-2 resize-none max-h-32"></textarea>
+                    <button id="sendBtn" class="p-2.5 m-1.5 rounded-lg bg-orange-600 text-white hover:bg-orange-500 transition" onclick="onUserSend()">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"/></svg>
+                    </button>
+                </div>
+                <div class="flex justify-between items-center mt-1.5 px-1">
+                    <div class="flex gap-2 text-[10px] text-ide-500">
+                        <button onclick="insertSlash()" class="hover:text-ide-300"><kbd class="bg-ide-800 px-1 rounded border border-ide-700">/</kbd> commands</button>
+                        <span>Enter to send · Shift+Enter newline</span>
+                    </div>
+                    <div class="text-[10px] text-ide-600">Forge Agent · multi-turn tools</div>
+                </div>
+            </div>
+        </div>
+
+        <div id="panel-code" class="flex-1 flex-col min-h-0 hidden">
+            <div class="h-8 bg-ide-900 border-b border-ide-800 flex items-center px-3 text-xs font-mono shrink-0">
+                <span class="text-ide-400" id="currentFile">No file open</span>
+                <span id="dirtyDot" class="ml-2 w-1.5 h-1.5 rounded-full bg-yellow-500 hidden"></span>
+                <div class="flex-1"></div>
+                <button class="text-ide-300 hover:text-white px-2 py-1 rounded hover:bg-ide-800 transition" onclick="saveCurrentFile()">Save <kbd class="text-[9px] text-ide-500">⌘S</kbd></button>
+            </div>
+            <div class="flex-1 flex overflow-hidden min-h-0">
+                <div class="w-12 pt-2 overflow-hidden text-right text-[12px] select-none bg-ide-900 border-r border-ide-800 text-ide-600" id="lineNumbers"></div>
+                <textarea id="codeEditor" class="flex-1 bg-ide-950 text-ide-100 font-mono text-[12px] p-2 pl-3 resize-none outline-none overflow-auto" spellcheck="false" placeholder="Open a file from the explorer or ask the agent to create one…"></textarea>
+            </div>
+        </div>
+    </div>
+
+    <!-- RIGHT RAIL -->
+    <div class="w-80 bg-ide-900 border-l border-ide-800 flex flex-col overflow-hidden shrink-0">
+        <div class="h-2/5 border-b border-ide-800 flex flex-col min-h-0">
+            <div class="h-8 flex items-center justify-between px-2 bg-ide-900 border-b border-ide-800 shrink-0 gap-2">
+                <span class="text-[10px] font-semibold text-ide-400 uppercase tracking-wider">Live Preview</span>
+                <div class="flex items-center gap-1 min-w-0">
+                    <select id="previewSelect" class="bg-ide-800 border border-ide-700 rounded px-1.5 py-0.5 text-[10px] text-ide-200 outline-none max-w-[120px]" onchange="setPreviewFile(this.value)"></select>
+                    <span class="text-[9px] text-ide-500 font-mono hidden sm:inline" id="previewFile">welcome.html</span>
+                    <button onclick="refreshPreview()" class="p-1 rounded hover:bg-ide-800 text-ide-400 hover:text-ide-100 transition" title="Refresh">
+                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
+                    </button>
+                    <button onclick="openPreviewFullscreen()" class="p-1 rounded hover:bg-ide-800 text-ide-400 hover:text-ide-100 transition" title="Fullscreen preview">
+                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 3H5a2 2 0 00-2 2v3m16-5h-3a2 2 0 00-2 2v3M3 16v3a2 2 0 002 2h3m8-5v3a2 2 0 002 2h3"/></svg>
+                    </button>
+                </div>
+            </div>
+            <div class="flex-1 bg-white relative min-h-0">
+                <iframe id="previewFrame" class="w-full h-full border-none bg-white"></iframe>
+                <div class="absolute bottom-2 right-2"><div class="w-2 h-2 rounded-full bg-emerald-500 node-pulse"></div></div>
+            </div>
+        </div>
+
+        <div class="flex-1 flex flex-col min-h-0 bg-ide-950">
+            <div class="h-8 flex items-center justify-between px-2 bg-ide-900 border-b border-ide-800 shrink-0">
+                <span class="text-[10px] font-semibold text-ide-400 uppercase tracking-wider">Terminal</span>
+                <button onclick="clearTerminal()" class="p-0.5 rounded hover:bg-ide-800 text-ide-400 hover:text-ide-100 transition" title="Clear">
+                    <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+                </button>
+            </div>
+            <div class="flex-1 overflow-y-auto p-2 font-mono text-[11px] space-y-0.5" id="terminal"></div>
+            <div class="flex items-center px-2 py-1.5 border-t border-ide-800 bg-ide-900 font-mono text-[11px]">
+                <span class="text-emerald-400 mr-1.5">$</span>
+                <input id="termInput" type="text" placeholder="run a command (try: ls, cat, npm run dev, grep)" class="flex-1 bg-transparent text-ide-200 placeholder-ide-600 outline-none" autocomplete="off">
+            </div>
+        </div>
+
+        <div class="shrink-0 border-t border-ide-800 bg-ide-900">
+            <div class="px-3 py-2 flex items-center justify-between">
+                <span class="text-[10px] font-semibold text-ide-400 uppercase tracking-wider">Agent Todo List</span>
+                <span class="text-[9px] text-ide-500" id="todoMeta">0 items</span>
+            </div>
+            <div id="todoListPanel" class="px-2 pb-2 space-y-1 max-h-36 overflow-y-auto">
+                <div class="text-[11px] text-ide-500 px-1">No active todo list.</div>
+            </div>
+        </div>
+
+        <div class="shrink-0 border-t border-ide-800 bg-ide-900">
+            <div class="px-3 py-2 flex items-center justify-between">
+                <span class="text-[10px] font-semibold text-ide-400 uppercase tracking-wider">Reasoning Effort</span>
+                <span class="text-[9px] text-ide-500" id="reasoningHint">when to deeply reason</span>
+            </div>
+            <div class="px-2 pb-2 flex gap-1">
+                <button data-effort="low" class="effort-btn flex-1 text-[10px] px-1.5 py-1 rounded border bg-ide-800 border-ide-700 text-ide-400 hover:text-ide-100" onclick="setReasoningEffort('low')">low</button>
+                <button data-effort="medium" class="effort-btn flex-1 text-[10px] px-1.5 py-1 rounded border bg-ide-800 border-ide-700 text-ide-400 hover:text-ide-100" onclick="setReasoningEffort('medium')">medium</button>
+                <button data-effort="high" class="effort-btn flex-1 text-[10px] px-1.5 py-1 rounded border bg-violet-500/20 border-violet-500/40 text-violet-200" onclick="setReasoningEffort('high')">high</button>
+                <button data-effort="max" class="effort-btn flex-1 text-[10px] px-1.5 py-1 rounded border bg-ide-800 border-ide-700 text-ide-400 hover:text-ide-100" onclick="setReasoningEffort('max')">max</button>
+            </div>
+        </div>
+
+        <div class="shrink-0 border-t border-ide-800 bg-ide-900">
+            <div class="px-3 py-2 flex items-center justify-between">
+                <span class="text-[10px] font-semibold text-ide-400 uppercase tracking-wider">Agent Tools</span>
+                <span class="text-[9px] text-emerald-400 flex items-center gap-1"><span class="w-1.5 h-1.5 rounded-full bg-emerald-500 node-pulse"></span>ready</span>
+            </div>
+            <div class="px-2 pb-2 flex flex-wrap gap-1">
+                <span class="text-[10px] px-1.5 py-0.5 rounded bg-indigo-500/15 text-indigo-300 border border-indigo-500/20">think</span>
+                <span class="text-[10px] px-1.5 py-0.5 rounded bg-violet-500/15 text-violet-300 border border-violet-500/20">reasoning</span>
+                <span class="text-[10px] px-1.5 py-0.5 rounded bg-sky-500/15 text-sky-300 border border-sky-500/20">create_todo</span>
+                <span class="text-[10px] px-1.5 py-0.5 rounded bg-cyan-500/15 text-cyan-300 border border-cyan-500/20">update_todo</span>
+                <span class="text-[10px] px-1.5 py-0.5 rounded bg-blue-500/15 text-blue-300 border border-blue-500/20">read_file</span>
+                <span class="text-[10px] px-1.5 py-0.5 rounded bg-emerald-500/15 text-emerald-300 border border-emerald-500/20">edit_file</span>
+                <span class="text-[10px] px-1.5 py-0.5 rounded bg-teal-500/15 text-teal-300 border border-teal-500/20">write_file</span>
+                <span class="text-[10px] px-1.5 py-0.5 rounded bg-cyan-500/15 text-cyan-300 border border-cyan-500/20">create_file</span>
+                <span class="text-[10px] px-1.5 py-0.5 rounded bg-amber-500/15 text-amber-300 border border-amber-500/20">search</span>
+                <span class="text-[10px] px-1.5 py-0.5 rounded bg-purple-500/15 text-purple-300 border border-purple-500/20">bash</span>
+                <span class="text-[10px] px-1.5 py-0.5 rounded bg-pink-500/15 text-pink-300 border border-pink-500/20">ask</span>
+                <span class="text-[10px] px-1.5 py-0.5 rounded bg-ide-700 text-ide-300 border border-ide-600">finish</span>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div id="previewFullscreen" class="hidden fixed inset-0 z-[100] bg-black/90 backdrop-blur-sm">
+    <div class="absolute inset-0 flex flex-col">
+        <div class="h-12 shrink-0 flex items-center justify-between px-4 border-b border-white/10 bg-black/50">
+            <div class="flex items-center gap-3 min-w-0">
+                <span class="text-white font-semibold text-sm">Fullscreen Preview</span>
+                <span id="previewFullscreenLabel" class="text-white/60 text-xs font-mono truncate">welcome.html</span>
+            </div>
+            <div class="flex items-center gap-2">
+                <button onclick="syncFullscreenPreview()" class="px-3 py-1.5 rounded bg-white/10 text-white text-xs hover:bg-white/20 transition">Refresh</button>
+                <button onclick="closePreviewFullscreen()" class="px-3 py-1.5 rounded bg-orange-600 text-white text-xs hover:bg-orange-500 transition">Close</button>
+            </div>
+        </div>
+        <iframe id="previewFullscreenFrame" class="flex-1 w-full h-full border-none bg-white"></iframe>
+    </div>
+</div>
+
+<script>
+/* ============================================================
+   VIRTUAL FILE SYSTEM
+============================================================ */
+const FS = {
+    '.forge/config.json': `{
+  "version": "1.0.0",
+  "theme": "dark",
+  "editor": {
+    "fontSize": 14,
+    "tabSize": 2,
+    "wordWrap": true,
+    "minimap": false
+  },
+  "agent": {
+    "reasoningEffort": "high",
+    "maxSteps": 30,
+    "autoSave": true
+  },
+  "preview": {
+    "autoRefresh": true,
+    "defaultFile": "welcome.html"
+  },
+  "workspace": {
+    "name": "My Forge Project",
+    "created": "2025-01-15"
+  }
+}`,
+    '.forge/README.md': `# Forge IDE — How to Use
+
+Welcome to **Forge**, your AI-powered coding environment.
+
+## Getting Started
+
+1. **Chat with the Agent** — Describe what you want to build in the chat panel
+2. **Watch it work** — The agent will plan, create files, and edit code
+3. **Preview your work** — Use the Live Preview panel to see HTML files
+
+## Agent Tools
+
+- **think** — Quick internal note
+- **reasoning** — Detailed planning with analysis and multiple approaches
+- **create_todo_list** — Break down tasks into steps
+- **read_file** — Read file contents with line numbers
+- **edit_file** — Make precise line-by-line edits
+- **create_file** — Create new files
+- **search** — Find text across all files
+- **bash** — Run shell commands
+
+## Reasoning Effort Levels
+
+- **Low** — Minimal planning, act fast
+- **Medium** — Reason after gathering data
+- **High** — Reason before each todo item
+- **Max** — Extensive reasoning everywhere
+
+## Tips
+
+- Use \`/help\` in chat for commands
+- Click files in the explorer to open them
+- Press \`Esc\` to close fullscreen preview
+- The agent validates HTML structure before saving
+
+Happy coding! 🚀
+`,
+    'welcome.html': `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Welcome to Forge</title>
+  <script src="https://cdn.tailwindcss.com"><\/script>
+</head>
+<body class="bg-zinc-950 text-zinc-100 font-sans min-h-screen flex items-center justify-center">
+  <div class="max-w-2xl mx-auto p-8 text-center">
+    <div class="w-20 h-20 mx-auto mb-6 rounded-2xl bg-gradient-to-br from-orange-500 to-red-600 flex items-center justify-center shadow-lg shadow-orange-500/30">
+      <svg class="w-10 h-10 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 18.657A8 8 0 016.343 7.343S7 9 9 10c0-2 .5-5 2.986-7C14 5 16.09 5.24 17 7.156c.914 1.918.612 3.842-.344 5.842zM9.879 16.121A3 3 0 1012.015 11L11 14H9c0 .768.293 1.536.879 2.121z"/>
+      </svg>
+    </div>
+    <h1 class="text-4xl font-bold mb-4 bg-gradient-to-r from-orange-400 to-red-500 bg-clip-text text-transparent">Welcome to Forge</h1>
+    <p class="text-zinc-400 text-lg mb-8">Your AI-powered coding environment is ready. Start by describing what you want to build in the chat panel.</p>
+    <div class="grid grid-cols-2 gap-4 text-left">
+      <div class="bg-zinc-900 border border-zinc-800 rounded-lg p-4">
+        <h3 class="text-orange-400 font-semibold mb-2">🤖 AI Agent</h3>
+        <p class="text-sm text-zinc-500">Describe your task and watch the agent plan, code, and iterate.</p>
+      </div>
+      <div class="bg-zinc-900 border border-zinc-800 rounded-lg p-4">
+        <h3 class="text-orange-400 font-semibold mb-2">📁 File Explorer</h3>
+        <p class="text-sm text-zinc-500">Browse, create, and edit files. Click to open in the editor.</p>
+      </div>
+      <div class="bg-zinc-900 border border-zinc-800 rounded-lg p-4">
+        <h3 class="text-orange-400 font-semibold mb-2">👁️ Live Preview</h3>
+        <p class="text-sm text-zinc-500">See your HTML files render in real-time. Click fullscreen for more space.</p>
+      </div>
+      <div class="bg-zinc-900 border border-zinc-800 rounded-lg p-4">
+        <h3 class="text-orange-400 font-semibold mb-2">💬 Terminal</h3>
+        <p class="text-sm text-zinc-500">Run bash commands like ls, cat, grep, npm, and more.</p>
+      </div>
+    </div>
+    <p class="text-zinc-600 text-sm mt-8">Type <code class="bg-zinc-800 px-2 py-0.5 rounded text-orange-300">/help</code> in chat for available commands.</p>
+  </div>
+</body>
+</html>
+`
+};
+
+let currentFile = null;
+let previewFile = 'welcome.html';
+let dirty = false;
+let todoList = [];
+const changedFilesNeedingReview = new Set();
+const fileVersion = {};
+const fileLastReadVersion = {};
+let reasoningEffort = 'high';
+
+/* ============================================================
+   FILE TREE
+============================================================ */
+const collapsed = {};
+
+function buildTree(paths) {
+    const root = {};
+    paths.sort().forEach(p => {
+        const parts = p.split('/');
+        let node = root;
+        parts.forEach((part, i) => {
+            if (i === parts.length - 1) node[part] = { __file: p };
+            else { node[part] = node[part] || {}; node = node[part]; }
+        });
+    });
+    return root;
+}
+
+const fileIcon = (n) => {
+    if (n.endsWith('.html')) return '<svg class="w-4 h-4 mr-1.5 text-orange-500" fill="currentColor" viewBox="0 0 20 20"><path d="M4 3a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V5a2 2 0 00-2-2H4z"/></svg>';
+    if (n.endsWith('.json')) return '<svg class="w-4 h-4 mr-1.5 text-yellow-600" fill="currentColor" viewBox="0 0 20 20"><path d="M3 4a1 1 0 011-1h12a1 1 0 011 1v12a1 1 0 01-1 1H4a1 1 0 01-1-1V4z"/></svg>';
+    if (n.endsWith('.md')) return '<svg class="w-4 h-4 mr-1.5 text-ide-300" fill="currentColor" viewBox="0 0 20 20"><path d="M4 4a2 2 0 012-2h8a2 2 0 012 2v12a2 2 0 01-2 2H6a2 2 0 01-2-2V4z"/></svg>';
+    if (n.endsWith('.tsx')||n.endsWith('.ts')) return '<svg class="w-4 h-4 mr-1.5 text-blue-400" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M12.316 3.051a1 1 0 01.633 1.265l-4 12a1 1 0 11-1.898-.632l4-12a1 1 0 011.265-.633zM5.707 6.293a1 1 0 010 1.414L3.414 10l2.293 2.293a1 1 0 11-1.414 1.414l-3-3a1 1 0 010-1.414l3-3a1 1 0 011.414 0zm6.586 0a1 1 0 011.414 0l3 3a1 1 0 010 1.414l-3 3a1 1 0 11-1.414-1.414L14.586 10l-2.293-2.293a1 1 0 010-1.414z" clip-rule="evenodd"/></svg>';
+    if (n.endsWith('.js')) return '<svg class="w-4 h-4 mr-1.5 text-yellow-400" fill="currentColor" viewBox="0 0 20 20"><path d="M3 4a1 1 0 011-1h12a1 1 0 011 1v12a1 1 0 01-1 1H4a1 1 0 01-1-1V4z"/></svg>';
+    return '<svg class="w-4 h-4 mr-1.5 text-ide-400" fill="currentColor" viewBox="0 0 20 20"><path d="M4 4a2 2 0 012-2h4l6 6v8a2 2 0 01-2 2H6a2 2 0 01-2-2V4z"/></svg>';
+};
+
+function renderNode(node, depth, parentPath) {
+    let html = '';
+    const entries = Object.keys(node).sort((a,b)=>{
+        const aF=!!node[a].__file, bF=!!node[b].__file;
+        if (aF!==bF) return aF?1:-1;
+        return a.localeCompare(b);
+    });
+    const search = document.getElementById('fileSearch').value.toLowerCase();
+    for (const name of entries) {
+        const item = node[name];
+        const pad = 4 + depth * 12;
+        if (item.__file) {
+            const path = item.__file;
+            if (search && !path.toLowerCase().includes(search)) continue;
+            const active = path === currentFile ? 'bg-ide-800 text-ide-100' : 'text-ide-300';
+            html += `<div class="flex items-center py-0.5 px-1 rounded cursor-pointer hover:bg-ide-800 ${active}" style="padding-left:${pad}px" onclick="openFile('${path}')">${fileIcon(name)}<span class="truncate">${name}</span></div>`;
+        } else {
+            const folderPath = parentPath ? parentPath + '/' + name : name;
+            const isOpen = !collapsed[folderPath];
+            const childHtml = renderNode(item, depth + 1, folderPath);
+            if (search && childHtml.trim() === '' && !isOpen) {
+                const probe = renderNode(item, depth + 1, folderPath);
+                if (probe.trim() === '') continue;
+            }
+            html += `<div class="flex items-center py-0.5 px-1 rounded cursor-pointer hover:bg-ide-800 text-ide-300" style="padding-left:${pad}px" onclick="toggleFolder('${folderPath}')">
+                <svg class="w-3 h-3 mr-1 text-ide-500 transition-transform ${isOpen?'':'-rotate-90'}" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+                <svg class="w-4 h-4 mr-1 text-yellow-500" fill="currentColor" viewBox="0 0 20 20"><path d="M2 6a2 2 0 012-2h5l2 2h5a2 2 0 012 2v6a2 2 0 01-2 2H4a2 2 0 01-2-2V6z"/></svg>
+                <span>${name}</span></div>`;
+            html += isOpen ? childHtml : '';
+        }
+    }
+    return html;
+}
+
+function renderFileTree() {
+    document.getElementById('fileTree').innerHTML = renderNode(buildTree(Object.keys(FS)), 0, '');
+    document.getElementById('fileCount').textContent = Object.keys(FS).length + ' files';
+    renderPreviewOptions();
+}
+function toggleFolder(p) { collapsed[p]=!collapsed[p]; renderFileTree(); }
+
+/* ============================================================
+   EDITOR
+============================================================ */
+function switchPanel(name) {
+    document.getElementById('panel-chat').classList.toggle('hidden', name !== 'chat');
+    document.getElementById('panel-code').classList.toggle('hidden', name !== 'code');
+    document.getElementById('panel-code').classList.toggle('flex', name === 'code');
+    document.getElementById('rail-chat').className = 'rail-btn p-2 rounded-lg transition relative group ' + (name==='chat'?'text-ide-100 bg-ide-800':'text-ide-400 hover:text-ide-100 hover:bg-ide-800');
+    document.getElementById('rail-code').className = 'rail-btn p-2 rounded-lg transition relative group ' + (name==='code'?'text-ide-100 bg-ide-800':'text-ide-400 hover:text-ide-100 hover:bg-ide-800');
+}
+
+function openFile(path, switchToCode = true) {
+    if (!(path in FS)) return;
+    if (dirty && currentFile && currentFile !== path && !confirm('Discard unsaved changes to ' + currentFile + '?')) return;
+    currentFile = path;
+    document.getElementById('codeEditor').value = FS[path];
+    document.getElementById('currentFile').textContent = path;
+    setDirty(false);
+    updateLineNumbers();
+    renderTabBar();
+    renderFileTree();
+    if (switchToCode) switchPanel('code');
+}
+
+function syncOpenEditorIfCurrent(path, options = {}) {
+    if (currentFile !== path) return;
+    if (dirty && !options.force) {
+        term(`editor buffer for ${path} left untouched because you have unsaved changes`, 'yellow');
+        return;
+    }
+    document.getElementById('codeEditor').value = FS[path] || '';
+    if (options.clean) setDirty(false);
+    updateLineNumbers();
+}
+
+function renderTabBar() {
+    const bar = document.getElementById('tabBar');
+    if (!currentFile) { bar.innerHTML = `<div class="px-3 py-1.5 text-ide-500 text-xs">No file open — ask the agent or open one from the explorer</div>`; return; }
+    const name = currentFile.split('/').pop();
+    bar.innerHTML = `<div class="bg-ide-800 text-ide-100 px-3 py-1.5 rounded-t flex items-center gap-2 mr-1">${fileIcon(name)}<span>${name}</span>${dirty?'<span class="w-1.5 h-1.5 rounded-full bg-yellow-500"></span>':''}</div>`;
+}
+
+function updateLineNumbers() {
+    const ed = document.getElementById('codeEditor');
+    const lines = ed.value.split('\n').length;
+    let html = '';
+    for (let i = 1; i <= Math.max(lines, 30); i++) html += `<div class="px-2">${i}</div>`;
+    document.getElementById('lineNumbers').innerHTML = html;
+}
+
+function setDirty(v) {
+    dirty = v;
+    document.getElementById('dirtyDot').classList.toggle('hidden', !v);
+    renderTabBar();
+}
+
+function saveCurrentFile() {
+    if (!currentFile) return;
+    FS[currentFile] = document.getElementById('codeEditor').value;
+    setDirty(false);
+    term(`saved ${currentFile} (${FS[currentFile].length} bytes)`, 'emerald');
+    if (currentFile === previewFile) refreshPreview();
+}
+
+function newFilePrompt() {
+    const name = prompt('New file path (e.g. src/utils/format.ts):');
+    if (!name) return;
+    if (name in FS) { alert('File already exists'); return; }
+    FS[name] = '';
+    renderFileTree();
+    openFile(name);
+    term(`created ${name}`, 'emerald');
+}
+
+document.getElementById('codeEditor').addEventListener('input', () => { setDirty(true); updateLineNumbers(); });
+document.getElementById('codeEditor').addEventListener('scroll', (e) => { document.getElementById('lineNumbers').scrollTop = e.target.scrollTop; });
+document.getElementById('codeEditor').addEventListener('keydown', (e) => {
+    if ((e.metaKey||e.ctrlKey) && e.key === 's') { e.preventDefault(); saveCurrentFile(); }
+    if (e.key === 'Tab') { e.preventDefault(); const t=e.target; const s=t.selectionStart; t.value=t.value.slice(0,s)+'  '+t.value.slice(t.selectionEnd); t.selectionStart=t.selectionEnd=s+2; }
+});
+
+function attachContext() {
+    if (currentFile) { const i=document.getElementById('promptInput'); i.value=(i.value?i.value+' ':'')+`(context: ${currentFile})`; i.focus(); }
+    else alert('Open a file first to attach it as context.');
+}
+function focusTerminal() { document.getElementById('termInput').focus(); }
+
+/* ============================================================
+   TERMINAL
+============================================================ */
+function term(text, color) {
+    const colors = { emerald:'text-emerald-400', red:'text-red-400', yellow:'text-yellow-400', blue:'text-blue-300', dim:'text-ide-500', white:'text-ide-200' };
+    const el = document.getElementById('terminal');
+    const div = document.createElement('div');
+    div.className = colors[color] || 'text-ide-300';
+    div.textContent = text;
+    el.appendChild(div);
+    el.scrollTop = el.scrollHeight;
+}
+function clearTerminal() { document.getElementById('terminal').innerHTML = ''; }
+
+document.getElementById('termInput').addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') {
+        const cmd = e.target.value.trim();
+        if (!cmd) return;
+        term('$ ' + cmd, 'white');
+        const out = runBash(cmd);
+        if (out) out.split('\n').forEach(l => term(l));
+        e.target.value = '';
+    }
+});
+
+/* ============================================================
+   BASH ENGINE
+============================================================ */
+function listDir(prefix) {
+    const set = new Set();
+    const p = prefix ? prefix.replace(/\/$/,'') + '/' : '';
+    Object.keys(FS).forEach(f => {
+        if (p && !f.startsWith(p)) return;
+        const rest = f.slice(p.length);
+        const seg = rest.split('/')[0];
+        if (seg) set.add(rest.includes('/') ? seg + '/' : seg);
+    });
+    return [...set].sort();
+}
+
+function runBash(command) {
+    const parts = command.split('&&').map(s => s.trim());
+    const outputs = [];
+    for (const c of parts) outputs.push(execOne(c));
+    return outputs.filter(x => x !== null && x !== undefined).join('\n');
+}
+
+function execOne(cmd) {
+    const redir = cmd.match(/^(.*?)(>>?)\s*(\S+)\s*$/);
+    if (redir && /^echo|^printf|^cat\s/.test(cmd.trim())) {
+        const body = redir[1].trim(), append = redir[2] === '>>', file = redir[3];
+        let content = '';
+        const em = body.match(/^echo\s+(.*)$/);
+        if (em) content = em[1].replace(/^["']|["']$/g,'') + '\n';
+        FS[file] = append ? (FS[file]||'') + content : content;
+        markFileChanged(file);
+        renderFileTree();
+        syncOpenEditorIfCurrent(file, { clean: true });
+        if (file === previewFile) refreshPreview();
+        return `wrote ${file}`;
+    }
+
+    const tok = cmd.match(/(?:[^\s"']+|"[^"]*"|'[^']*')+/g) || [];
+    const bin = tok[0];
+    const args = tok.slice(1).map(a => a.replace(/^["']|["']$/g,''));
+
+    switch (bin) {
+        case 'ls': { const items = listDir(args[0]||''); return items.length ? items.join('  ') : (args[0]?`ls: ${args[0]}: no such directory`:'(empty)'); }
+        case 'pwd': return '/workspace/forge-app';
+        case 'echo': return args.join(' ');
+        case 'cat': {
+            if (!args[0]) return 'cat: missing file';
+            if (!(args[0] in FS)) return `cat: ${args[0]}: No such file or directory`;
+            markFileReviewed(args[0]);
+            const content = FS[args[0]];
+            return content.split('\n').map((l,i)=>`  ${i+1}\t${l}`).join('\n');
+        }
+        case 'head': {
+            if (!args[0]) return 'head: missing file';
+            if (!(args[0] in FS)) return `head: ${args[0]}: No such file`;
+            markFileReviewed(args[0]);
+            const n = args[1] ? parseInt(args[1].replace(/^-\D*(\d+)$/,'$1')) : 10;
+            return FS[args[0]].split('\n').slice(0, n).map((l,i)=>`  ${i+1}\t${l}`).join('\n');
+        }
+        case 'tail': {
+            if (!args[0]) return 'tail: missing file';
+            if (!(args[0] in FS)) return `tail: ${args[0]}: No such file`;
+            markFileReviewed(args[0]);
+            const n = args[1] ? parseInt(args[1].replace(/^-\D*(\d+)$/,'$1')) : 10;
+            const lines = FS[args[0]].split('\n');
+            return lines.slice(-n).map((l,i)=>`  ${Math.max(1, lines.length - n + i + 1)}\t${l}`).join('\n');
+        }
+        case 'touch': {
+            if (!args[0]) return 'touch: missing file';
+            if (!(args[0] in FS)) { FS[args[0]]=''; markFileChanged(args[0]); renderFileTree(); }
+            return '';
+        }
+        case 'rm': {
+            const f = args.filter(a=>a!=='-rf'&&a!=='-r'&&a!=='-f');
+            let removed = 0;
+            f.forEach(t => { Object.keys(FS).forEach(k => { if (k===t||k.startsWith(t.replace(/\/$/,'')+'/')) { delete FS[k]; changedFilesNeedingReview.delete(k); removed++; }}); });
+            renderFileTree();
+            if (previewFile && !(previewFile in FS)) refreshPreview();
+            return removed ? `removed ${removed} item(s)` : `rm: ${f.join(' ')}: No such file`;
+        }
+        case 'mkdir': return '';
+        case 'mv': {
+            if (args.length<2) return 'mv: missing operand';
+            if (!(args[0] in FS)) return `mv: ${args[0]}: No such file`;
+            FS[args[1]] = FS[args[0]]; delete FS[args[0]];
+            if (changedFilesNeedingReview.has(args[0])) { changedFilesNeedingReview.delete(args[0]); changedFilesNeedingReview.add(args[1]); }
+            renderFileTree();
+            syncOpenEditorIfCurrent(args[1], { clean: true });
+            return '';
+        }
+        case 'cp': {
+            if (args.length<2) return 'cp: missing operand';
+            if (!(args[0] in FS)) return `cp: ${args[0]}: No such file`;
+            FS[args[1]] = FS[args[0]]; markFileChanged(args[1]); renderFileTree(); return '';
+        }
+        case 'grep': {
+            const pat = args[0]; const file = args[1];
+            if (!pat) return 'grep: missing pattern';
+            const targets = file ? (file in FS ? [file] : []) : Object.keys(FS);
+            const res = [];
+            targets.forEach(f => { FS[f].split('\n').forEach((line,i) => { if (line.toLowerCase().includes(pat.toLowerCase())) res.push(`${f}:${i+1}: ${line.trim()}`); }); });
+            return res.length ? `Found ${res.length} match(es):\n${res.slice(0,30).join('\n')}` : `(no matches for "${pat}")`;
+        }
+        case 'wc': {
+            if (!(args[0] in FS)) return `wc: ${args[0]}: No such file`;
+            const c = FS[args[0]];
+            return `${c.split('\n').length} lines  ${c.split(/\s+/).filter(Boolean).length} words  ${c.length} chars  ${args[0]}`;
+        }
+        case 'npm': case 'pnpm': case 'yarn': {
+            if (args[0]==='install'||args[0]==='i') return 'added 312 packages in 4.2s\n✓ dependencies installed';
+            if ((args[0]==='run'&&(args[1]==='dev'||!args[1]))||args[0]==='start') return 'VITE v5.0.0  ready in 380 ms\n➜  Local: http://localhost:5173/\n✓ compiled successfully';
+            if (args[0]==='run'&&args[1]==='build') return 'vite build\n✓ 34 modules transformed\n✓ built in 1.2s';
+            return `> ${cmd}\n(ok)`;
+        }
+        case 'node': return args[0] ? `> executing ${args[0]}\n✓ exit code 0` : 'Welcome to Node.js v20.11.0';
+        case 'git': {
+            if (args[0]==='status') return 'On branch main\nChanges not staged for commit:\n  modified: ' + (currentFile||'src/App.tsx');
+            if (args[0]==='add') return '';
+            if (args[0]==='commit') return '[main 3f2a1c9] ' + (args.join(' ').match(/-m\s+(.*)/)?.[1]||'update') + '\n 1 file changed';
+            if (args[0]==='log') return '3f2a1c9 (HEAD -> main) latest changes\na91bc02 initial commit';
+            return `git: ${args[0]}`;
+        }
+        case 'clear': clearTerminal(); return null;
+        case 'help': return 'commands: ls, cat, head, tail, echo>, touch, rm, mv, cp, grep, wc, npm, node, git, clear';
+        case '': return null;
+        default: return `${bin}: command not found`;
+    }
+}
+
+/* ============================================================
+   PREVIEW + TODO UI
+============================================================ */
+function getHtmlFiles() {
+    return Object.keys(FS).filter(f => f.toLowerCase().endsWith('.html')).sort();
+}
+
+function renderPreviewOptions() {
+    const select = document.getElementById('previewSelect');
+    if (!select) return;
+    const htmlFiles = getHtmlFiles();
+    if (!htmlFiles.length) {
+        previewFile = null;
+        select.innerHTML = '<option value="">No HTML files</option>';
+        document.getElementById('previewFile').textContent = 'no preview';
+        return;
+    }
+    if (!previewFile || !(previewFile in FS) || !previewFile.toLowerCase().endsWith('.html')) previewFile = htmlFiles[0];
+    select.innerHTML = htmlFiles.map(f => `<option value="${esc(f)}">${esc(f.split('/').pop())}</option>`).join('');
+    select.value = previewFile;
+    document.getElementById('previewFile').textContent = previewFile;
+}
+
+function setPreviewFile(path) {
+    if (!(path in FS)) return false;
+    if (!path.toLowerCase().endsWith('.html')) {
+        renderPreviewOptions();
+        return false;
+    }
+    previewFile = path;
+    refreshPreview();
+    return true;
+}
+
+function syncFullscreenPreview() {
+    const label = document.getElementById('previewFullscreenLabel');
+    const frame = document.getElementById('previewFullscreenFrame');
+    if (!label || !frame) return;
+    label.textContent = previewFile || 'no preview';
+    frame.srcdoc = FS[previewFile] || '<html><body style="font-family:sans-serif;padding:2rem;color:#666">No preview file</body></html>';
+}
+
+function openPreviewFullscreen() {
+    if (!previewFile) return;
+    document.getElementById('previewFullscreen').classList.remove('hidden');
+    syncFullscreenPreview();
+}
+
+function closePreviewFullscreen() {
+    document.getElementById('previewFullscreen').classList.add('hidden');
+}
+
+function renderTodoList() {
+    const panel = document.getElementById('todoListPanel');
+    const meta = document.getElementById('todoMeta');
+    if (!panel || !meta) return;
+    if (!todoList.length) {
+        meta.textContent = '0 items';
+        panel.innerHTML = '<div class="text-[11px] text-ide-500 px-1">No active todo list.</div>';
+        return;
+    }
+    const done = todoList.filter(item => item.status === 'done').length;
+    meta.textContent = `${done}/${todoList.length} done`;
+    panel.innerHTML = todoList.map((item, idx) => {
+        const status = item.status || 'pending';
+        const style = status === 'done'
+            ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-200'
+            : status === 'in_progress'
+            ? 'bg-amber-500/10 border-amber-500/20 text-amber-200'
+            : 'bg-ide-800 border-ide-700 text-ide-200';
+        const dot = status === 'done'
+            ? 'bg-emerald-400'
+            : status === 'in_progress'
+            ? 'bg-amber-400 node-pulse'
+            : 'bg-ide-500';
+        return `<div class="border rounded-lg px-2 py-1.5 ${style}">
+            <div class="flex items-start gap-2">
+                <span class="mt-1 w-1.5 h-1.5 rounded-full ${dot}"></span>
+                <div class="min-w-0 flex-1">
+                    <div class="text-[11px] leading-relaxed">${esc(item.text || `Todo ${idx + 1}`)}</div>
+                    <div class="text-[10px] uppercase tracking-wide opacity-70 mt-0.5">${esc(status.replace('_',' '))}</div>
+                </div>
+            </div>
+        </div>`;
+    }).join('');
+}
+
+function refreshPreview() {
+    renderPreviewOptions();
+    const frame = document.getElementById('previewFrame');
+    const html = FS[previewFile] || '<html><body style="font-family:sans-serif;padding:2rem;color:#666">No preview file</body></html>';
+    frame.srcdoc = html;
+    document.getElementById('previewFile').textContent = previewFile || 'no preview';
+    syncFullscreenPreview();
+    term(`preview rendered: ${previewFile || 'none'}`, 'dim');
+}
+
+/* ============================================================
+   AI BACKEND
+============================================================ */
+async function llm(prompt) {
+    const res = await fetch("https://chibbitai-backend.chibbit.deno.net/mistral", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ prompt })
+    });
+    const data = await res.json();
+    return data.response || data.message || data.output || (typeof data === 'string' ? data : JSON.stringify(data));
+}
+
+/* ============================================================
+   AGENT LOOP
+============================================================ */
+const MAX_STEPS = 30;
+const MAX_RETRIES = 3;
+const MAX_HISTORY = 60;
+let finishBlockCount = 0;
+let history = [];
+let agentRunning = false;
+let stopRequested = false;
+
+function buildReasoningPolicy() {
+    const planLengthInfo = {
+        low: 'analysis is 2-4 sentences, approaches are 1-2 sentences each, 1-2 pros/cons each, key_changes are mentioned briefly',
+        medium: 'analysis is 1 paragraph covering context and requirements, approaches are 3-5 sentences each, 2-3 pros/cons each, key_changes include file paths',
+        high: 'analysis is 2-3 paragraphs covering context/requirements/risks/unknowns, approaches are detailed paragraphs with 3-5 pros and cons each, key_changes include exact line numbers',
+        max: 'analysis is very extensive with subsections for context/requirements/risks/unknowns, approaches are multiple paragraphs, 4-8 specific pros and cons each, key_changes reference exact function names and line numbers'
+    };
+    const policies = {
+        low:
+`REASONING EFFORT: LOW (minimal or no reasoning)
+- Do NOT use the "reasoning" tool. Skip extensive planning.
+- At most a single short "think" at the very start is allowed, but prefer to act immediately.
+- Move straight to gathering data and making edits. Be fast and direct.`,
+        medium:
+`REASONING EFFORT: MEDIUM (reason AFTER data is gathered)
+- Do NOT reason up-front. First gather the data you need (search / read_file / bash).
+- AFTER you have gathered the relevant context, you MUST call the "reasoning" tool ONCE
+  to weigh approaches before you start editing. Then proceed to implement.
+- ${planLengthInfo.medium}
+- Do not call "reasoning" again unless something unexpected forces a re-plan.`,
+        high:
+`REASONING EFFORT: HIGH (reason for EACH todo list entry)
+- You MUST call the "reasoning" tool once at the start of EACH todo item, right after you
+  mark that item in_progress and before you edit any code for it.
+- ${planLengthInfo.high}
+- This is mandatory for every todo entry — do not skip it.`,
+        max:
+`REASONING EFFORT: MAX (extensive reasoning EVERYWHERE)
+- You MUST call the "reasoning" tool extensively:
+  * once before creating the todo list (overall strategy),
+  * once at the start of EACH todo item (approaches for that item),
+  * and again before any non-trivial edit_file/write_file/create_file (verify the plan).
+- ${planLengthInfo.max}
+- Every "reasoning" call must begin with a thorough "analysis" section before listing approaches.`
+    };
+    return policies[reasoningEffort] || policies.high;
+}
+
+function buildSystemPrompt() {
+    const fileList = Object.keys(FS).map(f => `- ${f} (${FS[f].split('\n').length} lines)`).join('\n');
+    return `You are Forge, an expert autonomous coding agent embedded in the Forge web IDE.
+
+════════════════════════════════════════════
+REASONING POLICY — MANDATORY, FOLLOW EXACTLY
+════════════════════════════════════════════
+${buildReasoningPolicy()}
+
+The "reasoning" tool is DIFFERENT from "think": "think" is a quick one-line note, while
+"reasoning" demands multiple detailed approaches, explicit pros/cons, and a justified choice.
+You MUST obey the reasoning effort level above. Do not under- or over-reason relative to it.
+
+════════════════════════════════════════════
+OUTPUT FORMAT — CRITICAL
+════════════════════════════════════════════
+You MUST output EXACTLY ONE raw JSON object per turn. NO prose before it. NO prose after it.
+NO markdown fences. NO explanations. ONLY the JSON object.
+Every response must be valid JSON that starts with { and ends with }.
+
+If you output anything other than a single JSON object your message will be REJECTED and you will be asked to retry.
+
+════════════════════════════════════════════
+DO NOT HALLUCINATE WARNINGS — CRITICAL
+════════════════════════════════════════════
+- NEVER fabricate "Enforcement Warnings", errors, or rule-violation messages.
+- NEVER accuse yourself of skipping a tool you already called.
+- The OBSERVATION messages returned by the system are the ONLY source of truth about
+  what tools you called and their results. Trust them over your own memory.
+- If an OBSERVATION says "reasoning recorded" or "Created todo list", those tools
+  succeeded. Do not re-do them or apologize for "missing" them.
+- Do not generate self-policing or self-lecturing messages. Just continue working.
+
+════════════════════════════════════════════
+TOOLS
+════════════════════════════════════════════
+{"tool":"think","thought":"<a short internal note — what to do next>"}
+  → Lightweight. A quick one-line plan or observation.
+
+{"tool":"reasoning","goal":"<what you are reasoning about>","analysis":{"context":"<what is the current state: file contents, imports, existing patterns, constraints>","requirements":"<what must the solution satisfy>","risks":"<what could go wrong>","unknowns":"<what you do not yet know and need to find out>"},"approaches":[{"name":"<short label>","description":"<detailed description of what this approach does, which files it touches, how it works>","pros":["<concrete advantage — specific, measurable, not vague>"],"cons":["<concrete disadvantage — specific, measurable, not vague>"],"files":["<files involved with full paths>"],"key_changes":["<exact change with file path and line numbers — Bad: 'add validation', Good: 'add validateInput() to src/utils/validate.ts at line 12'"]},...],"chosen":"<name or number of the chosen approach>","rationale":"<detailed, specific rationale. Link back to the analysis: why does this approach best satisfy the requirements given the risks and tradeoffs?>"}
+  → EXHAUSTIVE, DETAILED reasoning. Format:
+    Step 1: "analysis" — deep context about current state, requirements, risks, unknowns
+    Step 2: "approaches" — 2-4 distinct approaches, each with VERY specific key_changes using
+      actual file paths and line numbers. pros/cons must be concrete and measurable.
+      BAD pros: ["cleaner", "simpler", "faster", "more maintainable"]
+      GOOD pros: ["adds 3 lines vs 12 for the alternative", "does not require changing src/App.tsx",
+                   "reuses existing Redux store at src/store/index.ts line 24"]
+      BAD key_changes: ["add validation", "improve structure"]
+      GOOD key_changes: ["add validateInput() to src/utils/validate.ts at line 12",
+                          "import validateInput in src/App.tsx replacing line 5",
+                          "replace <Form> on line 42 of src/pages/Home.tsx with <ValidatedForm>"]
+    Step 3: "chosen" + "rationale" — explicit choice with justification tied to analysis.
+
+{"tool":"create_todo_list","items":[{"text":"<task description>","status":"pending"}]}
+  → Create a visible todo list. REQUIRED for every non-trivial task.
+
+{"tool":"update_todo_list","items":[{"text":"<task description>","status":"<status>"}]}
+  → Replace the entire todo list with updated statuses.
+
+{"tool":"read_file","path":"<path>","start_line":<N>,"end_line":<M>}
+  → Read file with line numbers. Files >400 lines are auto-truncated.
+
+{"tool":"create_file","path":"<path>","content":"<full content>"}
+  → Create a brand-new file. Fails if file already exists.
+
+{"tool":"write_file","path":"<path>","content":"<full new content>"}
+  → Overwrite an entire file (or create it). Use for large rewrites.
+
+{"tool":"edit_file","path":"<path>","operations":[{"op":"update|insert|delete",...}]}
+  → Edit specific lines. ALWAYS read_file first to get correct line numbers.
+    Op types:
+      {"op":"update","start_line":<N>,"end_line":<M>,"content":"<replacement>"}
+      {"op":"insert","after_line":<N>,"content":"<text to insert>"}
+      {"op":"delete","start_line":<N>,"end_line":<M>}
+
+{"tool":"search","query":"<text>"}
+  → Case-insensitive search across all files. Prefer over read_file for large files.
+
+{"tool":"bash","command":"<shell command>"}
+  → Execute: ls, cat, head, tail, grep, wc, touch, rm, mv, cp, echo >, npm, node, git, clear.
+
+{"tool":"ask_question","question":"<text>"}
+  → Pause and ask the user a clarifying question.
+
+{"tool":"finish","summary":"<what you accomplished>"}
+  → Declare the task fully complete. Only call after verifying your changes.
+
+════════════════════════════════════════════
+MANDATORY WORKFLOW
+════════════════════════════════════════════
+Step 1: think — a quick plan of the work
+Step 2: create_todo_list — list every sub-task (ALWAYS, even for small tasks)
+Step 3: For each todo item:
+  a. update_todo_list to mark it in_progress
+  b. search or read_file to understand the current code
+  c. APPLY THE REASONING POLICY above (use the "reasoning" tool as required)
+  d. edit_file / write_file / create_file to make the change
+  e. update_todo_list to mark it done
+Step 4: read_file every file you changed to verify it looks correct
+Step 5: finish with a summary
+
+Rules:
+- OBEY THE REASONING POLICY above at all times.
+- NEVER guess line numbers. Always read_file or search first.
+- ALWAYS call create_todo_list, even for single-step tasks.
+- Use ask_question if any requirement is unclear.
+- Use write_file for large rewrites, edit_file for small line-targeted patches.
+- create_file fails if file exists — use write_file or edit_file instead.
+- Before finish: mark all todo items done, then read changed files to verify.
+
+════════════════════════════════════════════
+PROJECT FILES
+════════════════════════════════════════════
+${fileList}`;
+}
+
+function renderHistoryForPrompt() {
+    let s = buildSystemPrompt() + '\n\n=== Conversation ===\n';
+    for (const h of history) {
+        if (h.role === 'user') s += `USER: ${h.content}\n`;
+        else if (h.role === 'assistant') s += `ASSISTANT: ${h.content}\n`;
+        else if (h.role === 'observation') s += `OBSERVATION:\n${h.content}\n---\n`;
+    }
+    s += 'ASSISTANT:';
+    return s;
+}
+
+function extractJSON(text) {
+    if (!text) return null;
+    let t = text.replace(/```\w*\s*/g, '').trim();
+    try { const r = JSON.parse(t); if (r && r.tool) return r; } catch(_) {}
+
+    function tryRepair(s) {
+        try { const r = JSON.parse(s); if (r && r.tool) return r; } catch(_) {}
+        try {
+            let fixed = s
+                .replace(/,\s*([}\]])/g, '$1')
+                .replace(/([{,]\s*)(\w+)\s*:/g, '$1"$2":')
+                .replace(/:\s*'([^']*)'/g, ':"$1"');
+            const r = JSON.parse(fixed);
+            if (r && r.tool) return r;
+        } catch(_) {}
+        try {
+            let jsFixed = s.replace(/([{,]\s*)(\w+)\s*:/g, '$1"$2":')
+                           .replace(/:\s*'([^']*)'/g, ':"$1"')
+                           .replace(/,\s*([}\]])/g, '$1');
+            const r = (new Function('return (' + jsFixed + ')'))();
+            if (r && r.tool) return r;
+        } catch(_) {}
+        return null;
+    }
+
+    function findJSON(src, startFrom) {
+        const idx = src.indexOf('{', startFrom || 0);
+        if (idx === -1) return null;
+        let depth = 0, inStr = false, escN = false;
+        for (let i = idx; i < src.length; i++) {
+            const ch = src[i];
+            if (inStr) {
+                if (escN) { escN = false; continue; }
+                if (ch === '\\') { escN = true; continue; }
+                if (ch === '"') inStr = false;
+            } else {
+                if (ch === '"') inStr = true;
+                else if (ch === '{') depth++;
+                else if (ch === '}') {
+                    depth--;
+                    if (depth === 0) {
+                        const slice = src.slice(idx, i + 1);
+                        const r = tryRepair(slice);
+                        if (r) return r;
+                        return findJSON(src, i + 1);
+                    }
+                }
+            }
+        }
+        if (depth > 0) {
+            let slice = src.slice(idx);
+            while (depth > 0) { slice += '}'; depth--; }
+            const r = tryRepair(slice);
+            if (r) return r;
+        }
+        return null;
+    }
+
+    const r1 = findJSON(t, 0);
+    if (r1) return r1;
+
+    const toolIdx = t.indexOf('"tool"');
+    if (toolIdx > 0) {
+        const braceIdx = t.lastIndexOf('{', toolIdx);
+        if (braceIdx >= 0) {
+            const r2 = findJSON(t, braceIdx);
+            if (r2) return r2;
+        }
+    }
+
+    return null;
+}
+
+function normalizeTodoItems(items) {
+    if (!Array.isArray(items)) return [];
+    return items.map((item, idx) => ({
+        text: String(item?.text || item?.title || `Todo ${idx + 1}`),
+        status: ['pending','in_progress','done'].includes(item?.status) ? item.status : 'pending'
+    }));
+}
+
+function markFileChanged(path) {
+    changedFilesNeedingReview.add(path);
+    fileVersion[path] = (fileVersion[path] || 0) + 1;
+    delete fileLastReadVersion[path];
+}
+
+function markFileReviewed(path) {
+    if (!path) return;
+    changedFilesNeedingReview.delete(path);
+    fileLastReadVersion[path] = fileVersion[path] || 0;
+}
+
+function hasFreshLineNumbers(path) {
+    if (!(path in FS)) return false;
+    const currentVer = fileVersion[path] || 0;
+    const lastRead = fileLastReadVersion[path];
+    return lastRead !== undefined && lastRead === currentVer;
+}
+
+function setReasoningEffort(level) {
+    if (!['low','medium','high','max'].includes(level)) return;
+    reasoningEffort = level;
+    document.querySelectorAll('.effort-btn').forEach(btn => {
+        const isActive = btn.dataset.effort === level;
+        btn.className = 'effort-btn flex-1 text-[10px] px-1.5 py-1 rounded border ' +
+            (isActive ? 'bg-violet-500/20 border-violet-500/40 text-violet-200'
+                      : 'bg-ide-800 border-ide-700 text-ide-400 hover:text-ide-100');
+    });
+    const hints = {
+        low: 'minimal — quick think only',
+        medium: 'after gathering data',
+        high: 'per todo item',
+        max: 'everywhere — most thorough'
+    };
+    const el = document.getElementById('reasoningHint');
+    if (el) el.textContent = hints[level];
+    term(`reasoning effort: ${level}`, 'dim');
+}
+
+/* ---- HTML structure validation ----
+   Pure string-search implementation — no regex, no escaping issues.
+   Returns array of problem strings (empty = valid).
+*/
+function validateHTMLStructure(text) {
+    const problems = [];
+    const t = text;
+
+    // Tags whose mismatch causes real breakage
+    const structural = ['html', 'head', 'body', 'script', 'style', 'template'];
+
+    function checkTag(tag) {
+        const openPat = '<' + tag;
+        const closePat = '</' + tag;
+        let openCount = 0, closeCount = 0, pos = 0;
+        while (pos < t.length) {
+            const oi = t.indexOf(openPat, pos);
+            const ci = t.indexOf(closePat, pos);
+            if (oi === -1 && ci === -1) break;
+            if (oi !== -1 && (ci === -1 || oi < ci)) {
+                openCount++;
+                pos = oi + openPat.length;
+            } else {
+                closeCount++;
+                pos = ci + closePat.length;
+            }
+        }
+        const diff = openCount - closeCount;
+        if (diff > 0) {
+            problems.push(openPat + '> opened ' + openCount + ' time(s) but ' + closePat + '> found only ' + closeCount + ' time(s) — ' + diff + ' unclosed');
+        } else if (diff < 0) {
+            problems.push(closePat + '> found ' + closeCount + ' time(s) but ' + openPat + '> opened only ' + openCount + ' time(s) — ' + (-diff) + ' extra');
+        }
+    }
+
+    for (const tag of structural) checkTag(tag);
+
+    // Detect JavaScript-looking code outside <script> tags
+    const hasScriptTag = t.toLowerCase().indexOf('<script') !== -1;
+    if (hasScriptTag) {
+        const lower = t.toLowerCase();
+        const outsideRegions = [];
+        let i = 0, inside = false;
+        while (i < lower.length) {
+            if (!inside) {
+                const oi = lower.indexOf('<script', i);
+                if (oi === -1) { outsideRegions.push([i, t.length]); break; }
+                if (oi > i) outsideRegions.push([i, oi]);
+                const end = t.indexOf('>', oi);
+                i = end === -1 ? t.length : end + 1;
+                inside = true;
+            } else {
+                const ci = lower.indexOf('</script', i);
+                if (ci === -1) break;
+                const end = t.indexOf('>', ci);
+                i = end === -1 ? t.length : end + 1;
+                inside = false;
+            }
+        }
+        const jsMarkers = ['function ', 'const ', 'let ', 'var ', 'document.', 'window.', 'console.log(', 'addEventListener('];
+        for (const region of outsideRegions) {
+            const lines = t.slice(region[0], region[1]).split('\n');
+            let lineNum = 1;
+            for (let k = 0; k < region[0]; k++) if (t[k] === '\n') lineNum++;
+            for (const line of lines) {
+                const tr = line.trim();
+                if (tr) {
+                    for (const m of jsMarkers) {
+                        if (tr.indexOf(m) !== -1) {
+                            problems.push('JS code outside <script> at line ' + lineNum + ': "' + tr.slice(0, 60) + '"');
+                            break;
+                        }
+                    }
+                }
+                lineNum++;
+            }
+        }
+    }
+
+    return problems;
+}
+
+/* ---- Tool execution ---- */
+function executeTool(action) {
+    const t = action.tool;
+    if (t === 'reasoning') {
+        const approaches = Array.isArray(action.approaches) ? action.approaches.length : 0;
+        const chosen = action.chosen ? ` Selected approach: ${action.chosen}.` : '';
+        return `Reasoning recorded (${approaches} approach${approaches===1?'':'es'} considered).${chosen} Proceed with the chosen plan.`;
+    }
+    if (t === 'create_todo_list') {
+        todoList = normalizeTodoItems(action.items);
+        renderTodoList();
+        return todoList.length ? `Created todo list with ${todoList.length} item(s).` : 'Created empty todo list.';
+    }
+    if (t === 'update_todo_list') {
+        todoList = normalizeTodoItems(action.items);
+        renderTodoList();
+        return todoList.length ? `Updated todo list. ${todoList.filter(i => i.status === 'done').length}/${todoList.length} done.` : 'Cleared todo list.';
+    }
+    if (t === 'read_file') {
+        const p = action.path;
+        if (!(p in FS)) return `Error: file "${p}" does not exist. Existing files:\n${Object.keys(FS).map(f=>`  ${f}`).join('\n')}`;
+        markFileReviewed(p);
+        const lines = FS[p].split('\n');
+        const total = lines.length;
+        let start = action.start_line != null ? Math.max(1, Math.floor(action.start_line)) : 1;
+        let end = action.end_line != null ? Math.min(total, Math.floor(action.end_line)) : total;
+        if (start > end) [start, end] = [end, start];
+        const trunc = action.start_line == null && total > 400;
+        if (trunc) { start = 1; end = 400; }
+        const slice = lines.slice(start - 1, end);
+        const numbered = slice.map((l,i) => `${String(start+i).padStart(4,' ')} | ${l}`).join('\n');
+        let header = `File: ${p} (${total} lines total)`;
+        if (start !== 1 || end !== total) header += ` · showing lines ${start}–${end}`;
+        if (trunc) header += ` · TRUNCATED (large file — prefer search first, then read targeted ranges)`;
+        return `${header}\n${numbered}${end<total?'\n…':''}`;
+    }
+    if (t === 'create_file') {
+        const p = action.path;
+        if (!p) return 'Error: create_file requires "path".';
+        if (p in FS) return `Error: "${p}" already exists. Use write_file to overwrite, or edit_file to modify.`;
+        const content = action.content != null ? String(action.content) : '';
+        if (/\.(html?|htm|jsx|tsx|vue|svelte)$/i.test(p)) {
+            const problems = validateHTMLStructure(content);
+            if (problems.length) {
+                return `create_file REJECTED for "${p}" — HTML structure is broken:\n` +
+                       problems.map((pr, i) => `  ${i + 1}. ${pr}`).join('\n') +
+                       `\n\nFile NOT created. Fix tag balance and retry.`;
+            }
+        }
+        FS[p] = content;
+        markFileChanged(p);
+        renderFileTree();
+        syncOpenEditorIfCurrent(p, { clean: true });
+        term(`created ${p} (${content.split('\n').length} lines)`, 'emerald');
+        if (p === previewFile) refreshPreview();
+        return `Created new file "${p}" (${content.split('\n').length} lines, ${content.length} chars).`;
+    }
+    if (t === 'write_file') {
+        const p = action.path;
+        if (!p) return 'Error: write_file requires "path".';
+        const content = action.content != null ? String(action.content) : '';
+        if (/\.(html?|htm|jsx|tsx|vue|svelte)$/i.test(p)) {
+            const problems = validateHTMLStructure(content);
+            if (problems.length) {
+                return `write_file REJECTED for "${p}" — HTML structure would be broken:\n` +
+                       problems.map((pr, i) => `  ${i + 1}. ${pr}`).join('\n') +
+                       `\n\nFile NOT modified. Fix tag balance and retry.`;
+            }
+        }
+        const isNew = !(p in FS);
+        FS[p] = content;
+        markFileChanged(p);
+        renderFileTree();
+        syncOpenEditorIfCurrent(p, { clean: true });
+        term(`${isNew ? 'created' : 'wrote'} ${p} (${content.split('\n').length} lines)`, 'emerald');
+        if (p === previewFile) refreshPreview();
+        return `${isNew ? 'Created' : 'Overwrote'} "${p}" (${content.split('\n').length} lines, ${content.length} chars).`;
+    }
+    if (t === 'edit_file') {
+        const p = action.path;
+        if (!(p in FS)) return `Error: file "${p}" does not exist. Use create_file for new files.`;
+        const ops = action.operations;
+        if (!Array.isArray(ops) || ops.length === 0) return 'Error: edit_file requires non-empty "operations" array.';
+
+        if (!hasFreshLineNumbers(p)) {
+            return `Error: stale line numbers. File "${p}" has been modified or never read in this session. ` +
+                   `You MUST read_file("${p}") right before editing it so your line numbers are accurate. ` +
+                   `Call read_file now, then retry your edit.`;
+        }
+
+        const lines = FS[p].split('\n');
+        const total = lines.length;
+        const errors = [];
+
+        for (let i = 0; i < ops.length; i++) {
+            const op = ops[i];
+            if (!['update','insert','delete'].includes(op.op)) {
+                errors.push(`op[${i}]: invalid op "${op.op}" (must be update|insert|delete)`);
+                continue;
+            }
+            if (op.op === 'insert') {
+                if (op.after_line == null) { errors.push(`op[${i}] insert: missing "after_line"`); continue; }
+                if (op.after_line < 0 || op.after_line > total) {
+                    errors.push(`op[${i}] insert: after_line ${op.after_line} out of range (0–${total})`); continue;
+                }
+            } else {
+                if (op.start_line == null || op.end_line == null) {
+                    errors.push(`op[${i}] ${op.op}: missing start_line/end_line`); continue;
+                }
+                if (op.start_line < 1 || op.end_line < op.start_line || op.end_line > total) {
+                    errors.push(`op[${i}] ${op.op}: line range ${op.start_line}–${op.end_line} invalid (file has ${total} lines)`); continue;
+                }
+            }
+            if (op.op !== 'delete' && op.content == null) {
+                errors.push(`op[${i}] ${op.op}: missing "content"`); continue;
+            }
+
+            if (op.anchor != null) {
+                const anchor = String(op.anchor).trim();
+                let targetLine;
+                if (op.op === 'insert') {
+                    targetLine = op.after_line === 0 ? '' : (lines[op.after_line - 1] || '');
+                } else {
+                    targetLine = lines[op.start_line - 1] || '';
+                }
+                const actual = targetLine.trim();
+                if (anchor && !actual.includes(anchor) && !anchor.includes(actual)) {
+                    const targetNum = op.op === 'insert' ? op.after_line : op.start_line;
+                    const ctxStart = Math.max(1, targetNum - 2);
+                    const ctxEnd = Math.min(total, targetNum + 2);
+                    const ctx = [];
+                    for (let j = ctxStart; j <= ctxEnd; j++) {
+                        const marker = j === targetNum ? '→' : ' ';
+                        ctx.push(`${marker} ${String(j).padStart(4,' ')} | ${lines[j-1]}`);
+                    }
+                    errors.push(`op[${i}] anchor mismatch at line ${targetNum}:\n  expected: ${JSON.stringify(anchor.slice(0,80))}\n  actual:   ${JSON.stringify(actual.slice(0,80))}\nActual context:\n${ctx.join('\n')}`);
+                    continue;
+                }
+            }
+        }
+
+        if (errors.length) {
+            return `Edit REJECTED — ${errors.length} validation error(s). File NOT modified:\n${errors.join('\n\n')}\n\nFix the line numbers or anchors and retry.`;
+        }
+
+        const sorted = ops.map((o, i) => ({ ...o, _idx: i })).sort((a, b) => {
+            const aKey = a.op === 'insert' ? (a.after_line + 0.5) : a.start_line;
+            const bKey = b.op === 'insert' ? (b.after_line + 0.5) : b.start_line;
+            if (aKey !== bKey) return bKey - aKey;
+            return b._idx - a._idx;
+        });
+
+        const workingLines = [...lines];
+        const changes = [];
+        for (const op of sorted) {
+            if (op.op === 'update') {
+                const s = op.start_line, e = op.end_line;
+                const replacement = String(op.content).split('\n');
+                workingLines.splice(s - 1, e - s + 1, ...replacement);
+                changes.push(`L${s}–${e} → ${replacement.length} line(s)`);
+            } else if (op.op === 'delete') {
+                const s = op.start_line, e = op.end_line;
+                workingLines.splice(s - 1, e - s + 1);
+                changes.push(`deleted L${s}–${e}`);
+            } else if (op.op === 'insert') {
+                const insertion = String(op.content).split('\n');
+                workingLines.splice(op.after_line, 0, ...insertion);
+                changes.push(`inserted ${insertion.length} line(s) after L${op.after_line}`);
+            }
+        }
+
+        const isHTML = /\.(html?|htm|jsx|tsx|vue|svelte)$/i.test(p);
+        if (isHTML) {
+            const htmlProblems = validateHTMLStructure(workingLines.join('\n'));
+            if (htmlProblems.length) {
+                return `Edit REJECTED for "${p}" — HTML structure would be broken:\n` +
+                       htmlProblems.map((pr, i) => `  ${i + 1}. ${pr}`).join('\n') +
+                       `\n\nYour edit was NOT applied. Fix the content (make sure all tags are balanced — ` +
+                       `every <script> has a <\/script>, every <style> has a <\/style>, etc.) and retry.\n` +
+                       `Hint: if you're adding JavaScript, wrap it in <script>...<\/script> tags.`;
+            }
+        }
+
+        FS[p] = workingLines.join('\n');
+        markFileChanged(p);
+        renderFileTree();
+        syncOpenEditorIfCurrent(p, { clean: true });
+        term(`edited ${p}: ${changes.length} op(s)`, 'emerald');
+        if (p === previewFile) refreshPreview();
+        return `Edited "${p}" — file now has ${workingLines.length} lines. Applied ${changes.length} op(s): ${changes.join('; ')}. ` +
+               `IMPORTANT: line numbers have shifted. If you want to edit this file again, call read_file first to see the new line numbers.`;
+    }
+    if (t === 'search') {
+        const q = (action.query||'').toLowerCase();
+        if (!q) return 'Error: search requires a non-empty "query".';
+        const results = [];
+        const perFile = {};
+        Object.keys(FS).forEach(f => {
+            FS[f].split('\n').forEach((line,i) => {
+                if (line.toLowerCase().includes(q)) {
+                    results.push({file:f, line:i+1, text:line.trim()});
+                    perFile[f] = (perFile[f]||0) + 1;
+                }
+            });
+        });
+        if (results.length === 0) return `No matches found for "${action.query}" across ${Object.keys(FS).length} files.`;
+        const summary = Object.entries(perFile).map(([f,c])=>`  ${f}: ${c} match(es)`).join('\n');
+        const shown = results.slice(0, 40).map(r => `  ${r.file}:${r.line}: ${r.text}`).join('\n');
+        const more = results.length > 40 ? `\n  ... and ${results.length - 40} more` : '';
+        return `Search "${action.query}": ${results.length} total match(es) in ${Object.keys(perFile).length} file(s).\nBy file:\n${summary}\nResults:\n${shown}${more}`;
+    }
+    if (t === 'bash') {
+        const cmd = action.command;
+        if (!cmd) return 'Error: bash requires "command".';
+        term('$ ' + cmd, 'white');
+        const out = runBash(cmd) || '';
+        out.split('\n').forEach(l => { if (l) term(l); });
+        return `$ ${cmd}\n${out || '(no output, exit 0)'}`;
+    }
+    return `Error: unknown tool "${t}".`;
+}
+
+/* ============================================================
+   CHAT RENDERING
+============================================================ */
+function chatCard(html) {
+    const feed = document.getElementById('chatFeed');
+    const div = document.createElement('div');
+    div.className = 'fade-in';
+    div.innerHTML = html;
+    feed.appendChild(div);
+    feed.scrollTop = feed.scrollHeight;
+    return div;
+}
+
+function userBubble(text) {
+    chatCard(`<div class="flex gap-3 justify-end">
+        <div class="max-w-[80%]">
+            <div class="text-[10px] font-semibold text-ide-500 text-right mb-1">You</div>
+            <div class="bg-orange-600/90 text-white text-sm leading-relaxed p-3 rounded-2xl rounded-tr-sm">${esc(text)}</div>
+        </div>
+        <div class="w-7 h-7 rounded-full bg-ide-700 flex items-center justify-center shrink-0 text-xs">You</div>
+    </div>`);
+}
+
+function agentHeader(inner) {
+    return `<div class="flex gap-3">
+        <div class="w-7 h-7 rounded-full bg-orange-600 flex items-center justify-center shrink-0 mt-0.5">
+            <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 18.657A8 8 0 016.343 7.343S7 9 9 10c0-2 .5-5 2.986-7C14 5 16.09 5.24 17 7.156c.914 1.918.612 3.842-.344 5.842zM9.879 16.121A3 3 0 1012.015 11L11 14H9c0 .768.293 1.536.879 2.121z"/></svg>
+        </div>
+        <div class="flex-1 min-w-0">${inner}</div>
+    </div>`;
+}
+
+function toolBadge(name) {
+    const map = {
+        think:'bg-indigo-500/15 text-indigo-300 border-indigo-500/30',
+        reasoning:'bg-violet-500/15 text-violet-300 border-violet-500/30',
+        create_todo_list:'bg-sky-500/15 text-sky-300 border-sky-500/30',
+        update_todo_list:'bg-cyan-500/15 text-cyan-300 border-cyan-500/30',
+        read_file:'bg-blue-500/15 text-blue-300 border-blue-500/30',
+        edit_file:'bg-emerald-500/15 text-emerald-300 border-emerald-500/30',
+        write_file:'bg-teal-500/15 text-teal-300 border-teal-500/30',
+        create_file:'bg-cyan-500/15 text-cyan-300 border-cyan-500/30',
+        search:'bg-amber-500/15 text-amber-300 border-amber-500/30',
+        bash:'bg-purple-500/15 text-purple-300 border-purple-500/30',
+        ask_question:'bg-pink-500/15 text-pink-300 border-pink-500/30',
+        finish:'bg-ide-700 text-ide-200 border-ide-600'
+    };
+    return `<span class="text-[10px] font-mono px-1.5 py-0.5 rounded border ${map[name]||'bg-ide-800 text-ide-300 border-ide-700'}">${name}</span>`;
+}
+
+function renderAction(action) {
+    if (action.tool === 'think') {
+        chatCard(agentHeader(`<div class="flex items-center gap-2 mb-1">${toolBadge('think')}</div><div class="text-sm text-ide-400 italic leading-relaxed">${esc(action.thought||'')}</div>`));
+    } else if (action.tool === 'reasoning') {
+        const analysis = action.analysis || {};
+        const approaches = Array.isArray(action.approaches) ? action.approaches : [];
+        const goal = action.goal || '';
+        const chosen = action.chosen || '';
+        const rationale = action.rationale || '';
+
+        // Analysis section — expanded collapsible detail
+        const analysisKeys = ['context', 'requirements', 'risks', 'unknowns'];
+        const hasAnyAnalysis = analysisKeys.some(k => analysis[k]);
+        let analysisHtml = '';
+        if (hasAnyAnalysis) {
+            analysisHtml = '<details class="mt-2 mb-2" open><summary class="text-[10px] font-semibold text-violet-300 cursor-pointer hover:text-violet-200 uppercase tracking-wide">Analysis</summary><div class="mt-1.5 space-y-1.5 border-l-2 border-violet-500/30 pl-3">';
+            for (const key of analysisKeys) {
+                if (analysis[key]) {
+                    const label = key.charAt(0).toUpperCase() + key.slice(1);
+                    analysisHtml += `<div><span class="text-[10px] font-bold text-violet-400 uppercase">${label}</span> <span class="text-[11px] text-ide-300">${esc(analysis[key])}</span></div>`;
+                }
+            }
+            analysisHtml += '</div></details>';
+        }
+
+        // Approaches
+        let approachHtml = '';
+        if (approaches.length) {
+            approachHtml = '<div class="mt-2 space-y-2">' + approaches.map((a, i) => {
+                const name = typeof a === 'string' ? a : (a.name || `Approach ${i+1}`);
+                const desc = typeof a === 'string' ? '' : (a.description || a.desc || '');
+                const pros = typeof a === 'object' && Array.isArray(a.pros) ? a.pros : [];
+                const cons = typeof a === 'object' && Array.isArray(a.cons) ? a.cons : [];
+                const files = typeof a === 'object' && Array.isArray(a.files) ? a.files : [];
+                const keyChanges = typeof a === 'object' && Array.isArray(a.key_changes) ? a.key_changes : [];
+                const isChosen = chosen && (chosen === name || chosen === `${i+1}` || chosen === String(i+1));
+                return `<div class="border rounded-lg p-2.5 ${isChosen ? 'bg-violet-500/10 border-violet-500/40' : 'bg-ide-900/50 border-ide-800'}">
+                    <div class="flex items-center gap-2 mb-1">
+                        <span class="text-[10px] font-mono text-violet-300 font-bold">${i+1}.</span>
+                        <span class="text-xs font-semibold text-ide-100">${esc(name)}</span>
+                        ${isChosen ? '<span class="text-[9px] px-1.5 py-0.5 rounded bg-violet-500/30 text-violet-200 uppercase font-semibold">chosen</span>' : ''}
+                    </div>
+                    ${desc ? `<div class="text-[11px] text-ide-300 mb-1.5 leading-relaxed">${esc(desc)}</div>` : ''}
+                    ${files.length ? `<div class="text-[10px] text-ide-400 mb-1 font-mono">Files: ${files.map(esc).join(', ')}</div>` : ''}
+                    ${pros.length ? `<div class="text-[10px] mb-0.5"><span class="text-emerald-400 font-semibold">Pros:</span> ${pros.map(p => `<span class="text-emerald-300">${esc(p)}</span>`).join(' · ')}</div>` : ''}
+                    ${cons.length ? `<div class="text-[10px] mb-0.5"><span class="text-red-400 font-semibold">Cons:</span> ${cons.map(c => `<span class="text-red-300">${esc(c)}</span>`).join(' · ')}</div>` : ''}
+                    ${keyChanges.length ? `<details class="mt-1"><summary class="text-[10px] text-amber-300 cursor-pointer hover:text-amber-200">Show ${keyChanges.length} key change(s)</summary><ul class="list-disc list-inside mt-1">${keyChanges.map(kc => `<li class="text-[10px] text-ide-300 font-mono">${esc(kc)}</li>`).join('')}</ul></details>` : ''}
+                </div>`;
+            }).join('') + '</div>';
+        }
+
+        // Rationale displayed prominently
+        const rationaleSection = rationale
+            ? `<div class="mt-2.5 border-t border-violet-500/20 pt-2">
+                 <div class="text-[10px] uppercase tracking-wide text-violet-300 font-bold mb-1">Chosen: ${esc(chosen)}</div>
+                 <div class="text-[11px] text-violet-200 bg-violet-500/5 border-l-2 border-violet-500/40 pl-3 py-1.5 leading-relaxed">${esc(rationale)}</div>
+               </div>`
+            : '';
+
+        chatCard(agentHeader(`<div class="flex items-center gap-2 mb-1">${toolBadge('reasoning')}${goal ? `<span class="text-[10px] text-ide-400 font-semibold truncate">${esc(goal)}</span>` : ''}</div>
+            ${analysisHtml}
+            ${approachHtml}
+            ${rationaleSection}`));
+    } else if (action.tool === 'create_todo_list' || action.tool === 'update_todo_list') {
+        const items = normalizeTodoItems(action.items);
+        chatCard(agentHeader(`<div class="flex items-center gap-2 mb-1">${toolBadge(action.tool)}</div>
+            <div class="space-y-1">${items.map(item => `<div class="text-[11px] px-2 py-1 rounded border ${item.status==='done'?'bg-emerald-500/10 border-emerald-500/20 text-emerald-200':item.status==='in_progress'?'bg-amber-500/10 border-amber-500/20 text-amber-200':'bg-ide-800 border-ide-700 text-ide-200'}">${esc(item.text)} <span class="opacity-70 uppercase text-[10px]">${esc(item.status.replace('_',' '))}</span></div>`).join('')}</div>`));
+    } else if (action.tool === 'read_file') {
+        const range = (action.start_line!=null && action.end_line!=null) ? ` · lines ${action.start_line}–${action.end_line}` : ' · full file';
+        chatCard(agentHeader(`<div class="flex items-center gap-2">${toolBadge('read_file')}<code class="text-xs text-blue-300 font-mono">${esc(action.path||'')}</code><span class="text-[10px] text-ide-500">${range}</span></div>`));
+    } else if (action.tool === 'create_file' || action.tool === 'write_file') {
+        const content = action.content || '';
+        const lines = content.split('\n').length;
+        const isNew = action.tool === 'create_file';
+        chatCard(agentHeader(`<div class="flex items-center gap-2 mb-1">${toolBadge(action.tool)}<code class="text-xs text-cyan-300 font-mono">${esc(action.path||'')}</code><span class="text-[10px] text-ide-500">${lines} lines${isNew?' · new':' · overwrite'}</span></div>
+            <div class="bg-ide-900 border border-ide-800 rounded-lg overflow-hidden"><pre class="p-2.5 font-mono text-[11px] text-ide-300 overflow-x-auto max-h-48 overflow-y-auto"><code>${esc(content.slice(0,1200))}${content.length>1200?'\n…':''}</code></pre></div>`));
+    } else if (action.tool === 'edit_file') {
+        const ops = action.operations || [];
+        const opSummary = ops.map(o => {
+            if (o.op === 'update') return `update L${o.start_line}–${o.end_line}`;
+            if (o.op === 'delete') return `delete L${o.start_line}–${o.end_line}`;
+            if (o.op === 'insert') return `insert after L${o.after_line}`;
+            return o.op;
+        }).join(', ');
+        chatCard(agentHeader(`<div class="flex items-center gap-2 mb-1">${toolBadge('edit_file')}<code class="text-xs text-emerald-300 font-mono">${esc(action.path||'')}</code><span class="text-[10px] text-ide-500">${ops.length} op(s)</span></div>
+            <div class="flex flex-wrap gap-1 mb-1">${ops.map(o => `<span class="text-[10px] font-mono px-1.5 py-0.5 rounded ${o.op==='update'?'bg-emerald-500/20 text-emerald-300':o.op==='delete'?'bg-red-500/20 text-red-300':'bg-cyan-500/20 text-cyan-300'}">${o.op==='update'?'±':o.op==='delete'?'-':'+'} ${o.op==='insert'?`L${o.after_line}`:`L${o.start_line}–${o.end_line}`}</span>`).join('')}</div>
+            <div class="text-[10px] text-ide-500 font-mono">${esc(opSummary)}</div>`));
+    } else if (action.tool === 'search') {
+        chatCard(agentHeader(`<div class="flex items-center gap-2">${toolBadge('search')}<code class="text-xs text-amber-300 font-mono">"${esc(action.query||'')}"</code></div>`));
+    } else if (action.tool === 'bash') {
+        chatCard(agentHeader(`<div class="flex items-center gap-2 mb-1">${toolBadge('bash')}</div>
+            <div class="bg-ide-900 border border-ide-800 rounded-lg p-2 font-mono text-[11px] text-emerald-300">$ ${esc(action.command||'')}</div>`));
+    } else if (action.tool === 'ask_question') {
+        chatCard(agentHeader(`<div class="flex items-center gap-2 mb-1">${toolBadge('ask_question')}</div>
+            <div class="text-sm text-pink-200 bg-pink-500/10 border border-pink-500/20 rounded-lg p-3">${esc(action.question||'')}</div>`));
+    } else if (action.tool === 'finish') {
+        chatCard(agentHeader(`<div class="flex items-center gap-2 mb-1">${toolBadge('finish')}<span class="text-emerald-400 text-xs font-semibold">Task complete</span></div>
+            <div class="text-sm text-ide-200 leading-relaxed">${fmt(action.summary||'Done.')}</div>`));
+    } else {
+        chatCard(agentHeader(`<div class="flex items-center gap-2 mb-1">${toolBadge(action.tool)}<span class="text-[10px] text-yellow-400">unknown tool</span></div><pre class="font-mono text-[11px] text-ide-400 bg-ide-900 border border-ide-800 rounded p-2 overflow-x-auto">${esc(JSON.stringify(action, null, 2))}</pre>`));
+    }
+}
+
+function observationCard(text) {
+    const displayLen = 2000;
+    chatCard(`<div class="ml-10 fade-in">
+        <div class="bg-ide-900/60 border-l-2 border-ide-700 rounded-r px-3 py-1.5 font-mono text-[10px] text-ide-500 max-h-40 overflow-y-auto whitespace-pre-wrap">${esc(text.slice(0,displayLen))}${text.length>displayLen?'\n… ('+text.length+' chars total)':''}</div>
+    </div>`);
+}
+
+function setAgentStatus(on, text) {
+    document.getElementById('agentStatus').classList.toggle('hidden', !on);
+    if (text) document.getElementById('agentStatusText').textContent = text;
+    document.getElementById('sendBtn').disabled = on;
+    document.getElementById('sendBtn').classList.toggle('opacity-50', on);
+}
+
+async function runAgent() {
+    if (agentRunning) return;
+    agentRunning = true; stopRequested = false;
+    setAgentStatus(true, 'Agent is thinking…');
+    let steps = 0;
+    let consecutiveBadJSON = 0;
+    try {
+        while (steps < MAX_STEPS && !stopRequested) {
+            steps++;
+            setAgentStatus(true, `Agent working… (step ${steps}/${MAX_STEPS})`);
+            let raw;
+            try { raw = await llm(renderHistoryForPrompt()); }
+            catch (e) { chatCard(agentHeader(`<div class="text-sm text-red-400">Connection error: ${esc(e.message)}</div>`)); break; }
+
+            const action = extractJSON(raw);
+            if (!action || !action.tool) {
+                consecutiveBadJSON++;
+                if (consecutiveBadJSON >= MAX_RETRIES) {
+                    chatCard(agentHeader(`<div class="text-sm text-red-400">Agent failed to return valid JSON after ${MAX_RETRIES} attempts. Please rephrase your request.</div>`));
+                    break;
+                }
+                const correction = `ERROR: Your last response was not a valid JSON tool call. Output ONLY a single raw JSON object — no prose, no fences, no commentary. Try again now.`;
+                history.push({ role:'assistant', content: raw });
+                history.push({ role:'observation', content: correction });
+                const shortRaw = raw.length > 240 ? raw.slice(0, 240) + '…' : raw;
+                chatCard(agentHeader(`<div class="text-[11px] text-yellow-400 font-mono bg-yellow-500/10 border border-yellow-500/20 rounded px-3 py-2">⚠ Non-JSON response (retry ${consecutiveBadJSON}/${MAX_RETRIES}):<br><span class="text-ide-500">${esc(shortRaw)}</span></div>`));
+                continue;
+            }
+            consecutiveBadJSON = 0;
+            renderAction(action);
+            history.push({ role:'assistant', content: JSON.stringify(action) });
+
+            while (history.length > MAX_HISTORY) {
+                const firstUser = history.findIndex(h => h.role === 'user');
+                const removeIdx = firstUser >= 0 ? firstUser + 1 : 0;
+                if (removeIdx < history.length - 4) history.splice(removeIdx, 2);
+                else break;
+            }
+
+            if (action.tool === 'finish') {
+                const incompleteTodos = todoList.filter(item => item.status !== 'done');
+                const unreadChanged = [...changedFilesNeedingReview];
+                finishBlockCount++;
+                if (finishBlockCount > 3) {
+                    changedFilesNeedingReview.clear();
+                    todoList.forEach(t => t.status = 'done');
+                    renderTodoList();
+                    term('agent: force-finished after repeated blocks', 'yellow');
+                    break;
+                }
+                if (incompleteTodos.length || unreadChanged.length) {
+                    const parts = [];
+                    if (incompleteTodos.length) parts.push(`Todo items still pending: ${incompleteTodos.map(t => t.text).join(', ')}. Mark them done with update_todo_list.`);
+                    if (unreadChanged.length) parts.push(`Changed files not yet verified: ${unreadChanged.join(', ')}. Read them with read_file or bash cat before finishing.`);
+                    const guard = 'Cannot finish yet. ' + parts.join(' ');
+                    observationCard(guard);
+                    history.push({ role:'observation', content: guard });
+                    term('agent: finish blocked — needs review', 'yellow');
+                    continue;
+                }
+                finishBlockCount = 0;
+                term('agent: task finished', 'emerald');
+                break;
+            }
+            if (action.tool === 'ask_question') { term('agent: waiting for user input', 'yellow'); break; }
+
+            if (action.tool === 'think') {
+                history.push({ role:'observation', content:'(noted — proceed to next action)' });
+                continue;
+            }
+            if (action.tool === 'reasoning') {
+                const chosen = action.chosen ? ` Chosen: ${action.chosen}.` : '';
+                history.push({ role:'observation', content: `(reasoning recorded — ${(action.approaches||[]).length} approach(es) considered.${chosen} Proceed with the chosen plan.)` });
+                continue;
+            }
+
+            const obs = executeTool(action);
+            const obsForHistory = obs.length > 4000 ? obs.slice(0, 4000) + '\n… (truncated)' : obs;
+            observationCard(obs);
+            history.push({ role:'observation', content: obsForHistory });
+        }
+        if (steps >= MAX_STEPS) {
+            chatCard(agentHeader(`<div class="text-sm text-yellow-400">Reached step limit. Send another message to continue.</div>`));
+        }
+    } finally {
+        agentRunning = false;
+        setAgentStatus(false);
+    }
+}
+
+function stopAgent() { stopRequested = true; term('agent: stop requested', 'yellow'); }
+
+/* ---- user input ---- */
+function onUserSend() {
+    const inp = document.getElementById('promptInput');
+    const text = inp.value.trim();
+    if (!text || agentRunning) return;
+    inp.value = ''; autoGrow();
+    if (text.startsWith('/')) { handleSlash(text); return; }
+    userBubble(text);
+    history.push({ role:'user', content: text });
+    runAgent();
+}
+
+function handleSlash(text) {
+    const [cmd, ...rest] = text.slice(1).split(' ');
+    const arg = rest.join(' ');
+    if (cmd === 'help') {
+        chatCard(agentHeader(`<div class="text-sm text-ide-300 space-y-1">
+            <div class="font-semibold text-ide-200 mb-1">Slash commands</div>
+            <div><code class="text-orange-300">/open &lt;file&gt;</code> — open a file in the editor</div>
+            <div><code class="text-orange-300">/run &lt;cmd&gt;</code> — run a bash command</div>
+            <div><code class="text-orange-300">/preview &lt;html-file&gt;</code> — set the preview file</div>
+            <div><code class="text-orange-300">/files</code> — list project files</div>
+            <div><code class="text-orange-300">/clear</code> — clear the chat</div>
+            <div><code class="text-orange-300">/reset</code> — reset agent conversation</div>
+        </div>`));
+    } else if (cmd === 'open') { if (arg in FS) openFile(arg); else chatCard(agentHeader(`<div class="text-sm text-red-400">No such file: ${esc(arg)}</div>`)); }
+    else if (cmd === 'run') { userBubble('/run ' + arg); term('$ '+arg,'white'); (runBash(arg)||'').split('\n').forEach(l=>l&&term(l)); }
+    else if (cmd === 'preview') { if (!setPreviewFile(arg)) chatCard(agentHeader(`<div class="text-sm text-red-400">Unable to preview <code class="font-mono">${esc(arg)}</code>. Make sure the file exists and is an HTML file.</div>`)); }
+    else if (cmd === 'files') {
+        const list = Object.keys(FS).map(f => `<div class="font-mono text-[11px] text-ide-300"><span class="text-ide-500">${FS[f].split('\n').length}L</span>  ${esc(f)}</div>`).join('');
+        chatCard(agentHeader(`<div class="text-sm text-ide-200 mb-1">${Object.keys(FS).length} files</div><div class="bg-ide-900 border border-ide-800 rounded-lg p-2 space-y-0.5">${list}</div>`));
+    }
+    else if (cmd === 'clear') {
+        document.getElementById('chatFeed').innerHTML='';
+        history=[];
+        todoList=[];
+        changedFilesNeedingReview.clear();
+        renderTodoList();
+        greet();
+    }
+    else if (cmd === 'reset') {
+        history=[];
+        todoList=[];
+        changedFilesNeedingReview.clear();
+        renderTodoList();
+        chatCard(agentHeader(`<div class="text-sm text-yellow-400">Conversation reset.</div>`));
+    }
+    else chatCard(agentHeader(`<div class="text-sm text-yellow-400">Unknown command. Try /help</div>`));
+}
+
+function insertSlash() { const i=document.getElementById('promptInput'); i.value='/'; i.focus(); }
+
+function autoGrow() { const t=document.getElementById('promptInput'); t.style.height='auto'; t.style.height=Math.min(t.scrollHeight,128)+'px'; }
+document.getElementById('promptInput').addEventListener('input', autoGrow);
+document.getElementById('promptInput').addEventListener('keydown', (e) => {
+    if (e.key==='Enter' && !e.shiftKey) { e.preventDefault(); onUserSend(); }
+});
+
+/* ============================================================
+   HELPERS
+============================================================ */
+function esc(t) { const d=document.createElement('div'); d.textContent = t==null?'':String(t); return d.innerHTML; }
+function fmt(text) {
+    let s = esc(text);
+    s = s.replace(/```(\w+)?\n?([\s\S]*?)```/g,'<pre class="bg-ide-900 border border-ide-800 rounded-lg p-2.5 my-1.5 font-mono text-[11px] overflow-x-auto"><code>$2</code></pre>');
+    s = s.replace(/`([^`]+)`/g,'<code class="bg-ide-800 px-1 rounded text-orange-300 font-mono text-[11px]">$1</code>');
+    s = s.replace(/\*\*([^*]+)\*\*/g,'<strong>$1</strong>');
+    s = s.replace(/\n/g,'<br>');
+    return s;
+}
+
+function greet() {
+    const msg = '<div class="text-xs font-semibold text-ide-400 mb-1">Forge Agent</div>'
+        + '<div class="text-sm text-ide-200 leading-relaxed">'
+        + 'Hi! I am <strong>Forge</strong>. For <strong>every task</strong> I will: '
+        + 'think, create a <strong>visible todo list</strong>, search/read before editing, '
+        + 'apply line-level changes, verify the result, then finish. '
+        + 'I ask clarifying questions when requirements are unclear.<br><br>'
+        + 'Try: <em style="color:#fb923c">&ldquo;Add a Settings page linked in the sidebar&rdquo;</em>'
+        + ' or <em style="color:#fb923c">&ldquo;Add a dark-mode toggle&rdquo;</em>.'
+        + '</div>';
+    chatCard(agentHeader(msg));
+}
+
+/* ============================================================
+   INIT
+============================================================ */
+renderFileTree();
+renderTabBar();
+renderTodoList();
+setReasoningEffort(reasoningEffort);
+previewFile = 'welcome.html';
+refreshPreview();
+term('Forge IDE — agent terminal ready', 'dim');
+term('Node v20.11.0 · npm 10.2.4', 'dim');
+term('✓ virtual filesystem mounted (' + Object.keys(FS).length + ' files)', 'emerald');
+greet();
+
+document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') closePreviewFullscreen();
+});
+</script>
+</body>
+</html>
