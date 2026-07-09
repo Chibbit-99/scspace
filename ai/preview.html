@@ -1,0 +1,3647 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SC.AI</title>
+    <script>
+        window.MathJax = {
+            tex: {
+                inlineMath: [['$', '$'], ['\\(', '\\)']],
+                displayMath: [['$$', '$$'], ['\\[', '\\]']],
+                processEscapes: true,
+                processEnvironments: true
+            },
+            options: {
+                skipHtmlTags: ['script', 'noscript', 'style', 'textarea', 'pre', 'code']
+            },
+            startup: {
+                typeset: false,
+                ready: function() {
+                    MathJax.startup.defaultReady();
+                    MathJax.typesetPromise([document.body]).catch(function(error) {
+                        console.error('MathJax initial typeset failed:', error);
+                    });
+                }
+            }
+        };
+    </script>
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/dompurify@3.2.6/dist/purify.min.js"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <style>
+        :root {
+            --bg-app: #f8fafc;
+            --bg-card: #ffffff;
+            --text-main: #0f172a;
+            --text-muted: #64748b;
+            --border: #e2e8f0;
+            --primary: #3b82f6;
+            --primary-hover: #2563eb;
+            --accent: #3b82f6;
+            --accent-hover: #2563eb;
+            --accent-rgb: 59, 130, 246;
+            --success: #10b981;
+            --danger: #ef4444;
+            --ai-glow: linear-gradient(135deg, rgba(59, 130, 246, 0.06), rgba(139, 92, 246, 0.06));
+            --radius: 12px;
+            --transition: all 0.25s ease;
+
+            /* Code editor theme — "fits all languages" (a balanced dark theme) */
+            --code-bg: #1e1e2e;
+            --code-panel: #181825;
+            --code-border: #313244;
+            --code-text: #cdd6f4;
+            --code-muted: #6c7086;
+            --code-line-num: #585b70;
+            --code-gutter: #181825;
+            --code-keyword: #cba6f7;
+            --code-string: #a6e3a1;
+            --code-comment: #6c7086;
+            --code-number: #fab387;
+            --code-func: #89b4fa;
+            --code-tag: #f38ba8;
+            --code-attr: #fab387;
+            --code-punct: #9399b2;
+        }
+
+        [data-theme="dark"] {
+            --bg-app: #0f172a;
+            --bg-card: #1e293b;
+            --text-main: #f8fafc;
+            --text-muted: #94a3b8;
+            --border: #334155;
+            --primary: #60a5fa;
+            --primary-hover: #3b82f6;
+            --accent: #60a5fa;
+            --accent-hover: #3b82f6;
+            --accent-rgb: 96, 165, 250;
+            --ai-glow: linear-gradient(135deg, rgba(96, 165, 250, 0.1), rgba(168, 85, 247, 0.1));
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: system-ui, -apple-system, sans-serif; }
+
+        :root {
+            scrollbar-color: rgba(var(--accent-rgb), 0.55) var(--bg-card);
+            scrollbar-width: thin;
+        }
+
+        ::-webkit-scrollbar {
+            width: 12px;
+            height: 12px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: var(--bg-card);
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: rgba(var(--accent-rgb), 0.35);
+            border: 3px solid var(--bg-card);
+            border-radius: 999px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: rgba(var(--accent-rgb), 0.6);
+        }
+
+        ::-webkit-scrollbar-corner {
+            background: var(--bg-card);
+        }
+
+        body {
+            background: var(--bg-app);
+            color: var(--text-main);
+            transition: var(--transition);
+            display: flex;
+            height: 100vh;
+            overflow: hidden;
+            position: relative;
+        }
+
+        body::before {
+            content: '';
+            position: fixed;
+            inset: 0;
+            background: linear-gradient(
+                135deg,
+                rgba(var(--accent-rgb), 0.03) 0%,
+                rgba(139, 92, 246, 0.03) 50%,
+                rgba(var(--accent-rgb), 0.03) 100%
+            );
+            background-size: 400% 400%;
+            animation: gradientShift 20s ease infinite;
+            z-index: -1;
+            pointer-events: none;
+        }
+
+        @keyframes gradientShift {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+
+        [data-theme="dark"] body::before {
+            background: linear-gradient(
+                135deg,
+                rgba(var(--accent-rgb), 0.05) 0%,
+                rgba(168, 85, 247, 0.05) 50%,
+                rgba(var(--accent-rgb), 0.05) 100%
+            );
+        }
+
+        /* ---------- Sidebar ---------- */
+        .sidebar {
+            width: 260px;
+            background-color: var(--bg-card);
+            backdrop-filter: blur(12px);
+            border-right: 1px solid var(--border);
+            display: flex;
+            flex-direction: column;
+            padding: 24px 20px;
+            gap: 20px;
+            overflow-y: auto;
+            flex-shrink: 0;
+            z-index: 1200;
+        }
+
+        .sidebar-backdrop {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(15, 23, 42, 0.5);
+            z-index: 1100;
+            opacity: 0;
+            transition: opacity 0.25s ease;
+        }
+
+        @media (max-width: 768px) {
+            .sidebar {
+                position: fixed;
+                top: 0;
+                left: 0;
+                bottom: 0;
+                transform: translateX(-100%);
+                transition: transform 0.25s ease;
+            }
+            body.sidebar-open .sidebar { transform: translateX(0); }
+            body.sidebar-open .sidebar-backdrop { display: block; opacity: 1; }
+        }
+
+        .logo-area { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+        .logo { font-size: 1.4rem; font-weight: 700; letter-spacing: -0.05em; color: var(--accent); }
+        .logo-sub { font-size: 0.7rem; color: var(--text-muted); }
+
+        .theme-toggle {
+            background: none; border: 1px solid var(--border); padding: 8px; border-radius: 50%;
+            cursor: pointer; color: var(--text-main); display: flex; align-items: center; justify-content: center;
+            transition: var(--transition); font-size: 0.9rem;
+        }
+        .theme-toggle:hover { background-color: var(--border); }
+
+        .nav-section { display: flex; flex-direction: column; gap: 4px; }
+        .nav-section-title { font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted); margin: 12px 0 6px; }
+
+        .nav-item {
+            display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-radius: 10px;
+            cursor: pointer; transition: var(--transition); font-weight: 500; font-size: 0.9rem;
+            background: transparent; border: none; width: 100%; text-align: left; color: var(--text-main);
+        }
+        .nav-item:hover { background: var(--border); }
+        .nav-item.active { background: rgba(var(--accent-rgb), 0.1); color: var(--accent); }
+        .nav-icon { display: flex; align-items: center; justify-content: center; width: 18px; height: 18px; flex-shrink: 0; }
+
+        /* ---------- Main layout ---------- */
+        .main-area { flex: 1; display: flex; flex-direction: column; min-width: 0; }
+
+        /* ---------- Tab bar ---------- */
+        .tab-bar {
+            display: flex;
+            align-items: flex-end;
+            gap: 4px;
+            padding: 10px 16px 0;
+            background: var(--bg-card);
+            border-bottom: 1px solid var(--border);
+            overflow-x: auto;
+            flex-shrink: 0;
+            position: relative;
+        }
+        .tab-bar::-webkit-scrollbar { height: 4px; }
+
+        .sidebar-toggle {
+            display: none;
+            align-items: center;
+            justify-content: center;
+            width: 34px;
+            height: 34px;
+            margin: 0 4px 8px 0;
+            border-radius: 8px;
+            border: 1px solid var(--border);
+            background: var(--bg-card);
+            color: var(--text-main);
+            cursor: pointer;
+            flex-shrink: 0;
+        }
+        .sidebar-toggle svg { width: 16px; height: 16px; }
+        @media (max-width: 768px) { .sidebar-toggle { display: flex; } }
+
+        .tab {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 9px 14px;
+            border: 1px solid var(--border);
+            border-bottom: none;
+            border-radius: 10px 10px 0 0;
+            background: var(--bg-app);
+            color: var(--text-muted);
+            cursor: pointer;
+            font-size: 0.85rem;
+            font-weight: 500;
+            white-space: nowrap;
+            max-width: 200px;
+            transition: var(--transition);
+            flex-shrink: 0;
+        }
+        .tab:hover { color: var(--text-main); }
+        .tab.active {
+            background: var(--bg-app);
+            color: var(--accent);
+            font-weight: 600;
+            border-color: var(--border);
+            position: relative;
+        }
+        .tab.active::after {
+            content: '';
+            position: absolute;
+            left: 0; right: 0; bottom: -1px;
+            height: 2px;
+            background: var(--accent);
+        }
+        .tab-label { overflow: hidden; text-overflow: ellipsis; }
+        .tab-close {
+            display: flex; align-items: center; justify-content: center;
+            width: 16px; height: 16px; border-radius: 4px; border: none;
+            background: transparent; color: var(--text-muted); cursor: pointer;
+            font-size: 0.9rem; line-height: 1; flex-shrink: 0;
+        }
+        .tab-close:hover { background: var(--border); color: var(--danger); }
+
+        .tab-add-btn {
+            display: flex; align-items: center; justify-content: center;
+            width: 30px; height: 30px; margin: 0 0 6px 4px;
+            border-radius: 8px; border: 1px solid var(--border);
+            background: var(--bg-card); color: var(--text-muted);
+            cursor: pointer; font-size: 1.1rem; flex-shrink: 0;
+            transition: var(--transition);
+        }
+        .tab-add-btn:hover { background: var(--border); color: var(--accent); }
+
+        /* New tab landing page */
+        .new-tab-page {
+            flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center;
+            gap: 20px; padding: 40px;
+        }
+        .new-tab-title { font-size: 1.4rem; font-weight: 700; color: var(--text-main); }
+        .new-tab-sub { color: var(--text-muted); font-size: 0.9rem; margin-top: -8px; }
+        .new-tab-actions { display: flex; gap: 16px; flex-wrap: wrap; justify-content: center; margin-top: 8px; }
+        .new-tab-btn {
+            display: flex; flex-direction: column; align-items: center; gap: 10px;
+            padding: 28px 36px; border-radius: var(--radius);
+            border: 1px solid var(--border); background: var(--bg-card);
+            color: var(--text-main); cursor: pointer; font-size: 0.95rem; font-weight: 600;
+            transition: var(--transition); min-width: 180px;
+        }
+        .new-tab-btn:hover { border-color: var(--accent); color: var(--accent); background: rgba(var(--accent-rgb), 0.05); }
+        .new-tab-btn svg { width: 32px; height: 32px; stroke: currentColor; }
+
+        /* ---------- Content area ---------- */
+        .content-area { flex: 1; overflow: hidden; display: flex; flex-direction: column; min-height: 0; }
+        .page { flex: 1; overflow-y: auto; padding: 32px 40px; }
+        .page.hidden { display: none; }
+        @media (max-width: 768px) { .page { padding: 20px 16px; } }
+
+        .page-header { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-bottom: 28px; }
+        .page-title { font-size: 1.8rem; font-weight: 700; }
+
+        /* ---------- Dashboard ---------- */
+        .home-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
+        @media (max-width: 900px) { .home-grid { grid-template-columns: 1fr; } }
+
+        .home-card {
+            background: rgba(255, 255, 255, 0.7);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            border-radius: var(--radius);
+            padding: 24px;
+            backdrop-filter: blur(16px);
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
+        }
+        [data-theme="dark"] .home-card {
+            background: rgba(30, 41, 59, 0.7);
+            border: 1px solid rgba(51, 65, 85, 0.5);
+        }
+        .greeting-section { font-size: 1.5rem; font-weight: 600; margin-bottom: 12px; }
+        .time-display { font-size: 2.5rem; font-weight: 700; color: var(--accent); margin-bottom: 4px; }
+        .date-display { color: var(--text-muted); font-size: 0.95rem; }
+
+        .recent-chat-item {
+            display: flex; justify-content: space-between; align-items: center; gap: 12px;
+            padding: 12px; margin: 8px 0;
+            background: rgba(255, 255, 255, 0.5);
+            border-radius: 10px; border-left: 3px solid var(--accent);
+            backdrop-filter: blur(8px); cursor: pointer;
+            transition: var(--transition);
+        }
+        [data-theme="dark"] .recent-chat-item { background: rgba(15, 23, 42, 0.5); }
+        .recent-chat-item:hover { border-left-color: var(--accent-hover); background: var(--border); }
+        .recent-chat-title { font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .recent-chat-meta { font-size: 0.8rem; color: var(--text-muted); flex-shrink: 0; }
+        .empty-hint { color: var(--text-muted); font-size: 0.9rem; padding: 12px 0; }
+
+        .btn {
+            background: var(--accent); color: white; border: none; padding: 10px 20px;
+            border-radius: 10px; cursor: pointer; font-weight: 600; transition: var(--transition);
+        }
+        .btn:hover { background: var(--accent-hover); }
+        .btn.secondary { background: rgba(255, 255, 255, 0.5); color: var(--text-main); border: 1px solid var(--border); }
+        [data-theme="dark"] .btn.secondary { background: rgba(15, 23, 42, 0.5); border: 1px solid rgba(51, 65, 85, 0.5); }
+        .btn.secondary:hover { background: var(--border); }
+        .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+        .quick-ai-ask {
+            margin-top: 24px;
+            background: var(--ai-glow);
+            border: 1px solid rgba(var(--accent-rgb), 0.25);
+            border-radius: var(--radius);
+            padding: 20px 24px;
+            backdrop-filter: blur(12px);
+        }
+        .quick-ai-ask-title { font-weight: 700; color: var(--accent); margin-bottom: 12px; font-size: 0.9rem; }
+        .quick-ai-ask-form { display: flex; gap: 10px; }
+        .quick-ai-ask-input {
+            flex: 1; border: 1px solid var(--border); padding: 10px 14px; border-radius: 10px;
+            background: var(--bg-card); color: var(--text-main); font-size: 0.9rem;
+        }
+        .quick-ai-ask-input:focus { outline: 2px solid var(--accent); outline-offset: -1px; }
+
+        /* ---------- Chat interface ---------- */
+        .chat-page { display: flex; flex-direction: column; padding: 0; overflow: hidden; }
+        .chat-header {
+            display: flex; justify-content: space-between; align-items: center; gap: 12px;
+            padding: 16px 24px; border-bottom: 1px solid var(--border); background: var(--bg-card);
+            flex-shrink: 0;
+        }
+        .chat-header-title { font-size: 1.05rem; font-weight: 700; }
+        .chat-header-meta { font-size: 0.78rem; color: var(--text-muted); margin-top: 2px; }
+        .temp-badge {
+            display: inline-block;
+            margin-left: 8px;
+            font-size: 0.62rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+            vertical-align: middle;
+            background: rgba(var(--accent-rgb), 0.12);
+            color: var(--accent);
+            padding: 2px 7px;
+            border-radius: 999px;
+        }
+        .chat-rename-btn {
+            border: 1px solid var(--border); background: transparent; color: var(--text-muted);
+            padding: 6px 12px; border-radius: 8px; cursor: pointer; font-size: 0.8rem;
+            transition: var(--transition);
+        }
+        .chat-rename-btn:hover { background: var(--border); color: var(--text-main); }
+
+        .chat-messages {
+            flex: 1; overflow-y: auto; padding: 24px;
+            display: flex; flex-direction: column; gap: 16px;
+        }
+        .chat-msg { display: flex; gap: 12px; max-width: 760px; }
+        .chat-msg.user { align-self: flex-end; flex-direction: row-reverse; }
+        .chat-msg-avatar {
+            width: 32px; height: 32px; border-radius: 50%; flex-shrink: 0;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 0.7rem; font-weight: 700; color: white;
+        }
+        .chat-msg.ai .chat-msg-avatar { background: var(--accent); }
+        .chat-msg.user .chat-msg-avatar { background: var(--text-muted); }
+        .chat-msg-bubble {
+            padding: 12px 16px; border-radius: 14px; font-size: 0.92rem; line-height: 1.55;
+            white-space: pre-wrap; word-break: break-word;
+            overflow: hidden;
+            contain: content;
+        }
+        .chat-msg.ai .chat-msg-bubble {
+            background: var(--bg-card); border: 1px solid var(--border);
+            border-top-left-radius: 4px;
+        }
+        .chat-msg.user .chat-msg-bubble {
+            background: var(--accent); color: white;
+            border-top-right-radius: 4px;
+        }
+        .chat-msg-time { font-size: 0.68rem; color: var(--text-muted); margin-top: 6px; }
+        .chat-msg.user .chat-msg-time { text-align: right; }
+
+        .chat-msg-actions {
+            display: flex;
+            gap: 6px;
+            margin-top: 8px;
+            opacity: 0;
+            transition: opacity 0.2s ease;
+        }
+        .chat-msg:hover .chat-msg-actions { opacity: 1; }
+        .chat-msg-action-btn {
+            background: transparent;
+            border: 1px solid var(--border);
+            color: var(--text-muted);
+            padding: 4px 8px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.7rem;
+            font-weight: 500;
+            transition: var(--transition);
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+        .chat-msg-action-btn:hover {
+            background: var(--border);
+            color: var(--text-main);
+        }
+        .chat-msg.user .chat-msg-action-btn {
+            border-color: var(--border);
+            color: var(--text-muted);
+            background: rgba(var(--accent-rgb), 0.05);
+        }
+        .chat-msg.user .chat-msg-action-btn:hover {
+            background: var(--border);
+            color: var(--text-main);
+        }
+        .chat-msg-action-btn.copied {
+            background: var(--success);
+            border-color: var(--success);
+            color: white;
+        }
+
+        .code-block-wrapper {
+            position: relative;
+            margin: 6px 0;
+        }
+        .code-block-wrapper pre {
+            background: var(--code-bg) !important;
+            border: 1px solid var(--code-border) !important;
+            border-radius: 6px;
+            padding: 8px;
+            margin: 0;
+            overflow-x: auto;
+            max-width: 100%;
+        }
+        .code-block-wrapper pre code {
+            background: transparent !important;
+            color: var(--code-text) !important;
+        }
+        .chat-msg-bubble .code-block-wrapper pre {
+            background: var(--code-bg) !important;
+        }
+        .chat-msg-bubble .code-block-wrapper pre code {
+            color: var(--code-text) !important;
+        }
+        .code-block-copy-btn {
+            position: absolute;
+            top: 8px;
+            right: 8px;
+            background: rgba(var(--accent-rgb), 0.15);
+            border: 1px solid rgba(var(--accent-rgb), 0.3);
+            color: var(--accent);
+            padding: 4px 10px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.7rem;
+            font-weight: 600;
+            transition: var(--transition);
+            z-index: 10;
+        }
+        .code-block-copy-btn:hover {
+            background: rgba(var(--accent-rgb), 0.25);
+        }
+        .code-block-copy-btn.copied {
+            background: var(--success);
+            border-color: var(--success);
+            color: white;
+        }
+
+        .edit-message-input {
+            width: 100%;
+            padding: 8px 12px;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            background: var(--bg-app);
+            color: var(--text-main);
+            font-size: 0.92rem;
+            font-family: inherit;
+            resize: vertical;
+            min-height: 60px;
+            max-height: 200px;
+        }
+        .edit-message-input:focus {
+            outline: 2px solid var(--accent);
+            outline-offset: -1px;
+        }
+        .edit-message-actions {
+            display: flex;
+            gap: 8px;
+            margin-top: 8px;
+        }
+        .edit-message-actions button {
+            padding: 6px 12px;
+            border-radius: 6px;
+            font-size: 0.8rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: var(--transition);
+        }
+        .edit-message-actions .save-btn {
+            background: var(--accent);
+            color: white;
+            border: none;
+        }
+        .edit-message-actions .save-btn:hover {
+            background: var(--accent-hover);
+        }
+        .edit-message-actions .cancel-btn {
+            background: transparent;
+            border: 1px solid var(--border);
+            color: var(--text-main);
+        }
+        .edit-message-actions .cancel-btn:hover {
+            background: var(--border);
+            color: var(--text-main);
+        }
+
+        .chat-empty {
+            flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center;
+            gap: 12px; color: var(--text-muted); text-align: center; padding: 40px;
+        }
+        .chat-empty-logo { font-size: 2rem; font-weight: 700; color: var(--accent); letter-spacing: -0.04em; }
+
+        .typing-indicator { 
+            display: flex; 
+            align-items: center; 
+            justify-content: center; 
+            padding: 20px 16px; 
+            gap: 12px;
+        }
+        
+        .ai-loading {
+            position: relative;
+            width: 40px;
+            height: 40px;
+        }
+        
+        .ai-loading-ring {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            border-radius: 50%;
+            border: 3px solid transparent;
+            border-top-color: var(--accent);
+            border-right-color: var(--accent);
+            animation: aiSpin 0.8s linear infinite;
+        }
+        
+        .ai-loading-ring::before {
+            content: '';
+            position: absolute;
+            top: 3px;
+            left: 3px;
+            right: 3px;
+            bottom: 3px;
+            border-radius: 50%;
+            border: 3px solid transparent;
+            border-top-color: var(--accent);
+            animation: aiSpin 1.2s linear infinite reverse;
+        }
+        
+        .ai-loading-ring::after {
+            content: '';
+            position: absolute;
+            top: 9px;
+            left: 9px;
+            right: 9px;
+            bottom: 9px;
+            border-radius: 50%;
+            border: 3px solid transparent;
+            border-top-color: var(--accent);
+            animation: aiSpin 0.6s linear infinite;
+        }
+        
+        @keyframes aiSpin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .typing-text {
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            font-weight: 500;
+            letter-spacing: 0.05em;
+            animation: textFade 1.5s ease-in-out infinite;
+        }
+        
+        @keyframes textFade {
+            0%, 100% { opacity: 0.5; }
+            50% { opacity: 1; }
+        }
+
+        .chat-input-area {
+            padding: 16px 24px; border-top: 1px solid var(--border); background: var(--bg-card);
+            flex-shrink: 0;
+        }
+        .chat-form { display: flex; gap: 10px; align-items: flex-end; max-width: 900px; margin: 0 auto; width: 100%; }
+        .chat-input {
+            flex: 1; border: 1px solid var(--border); padding: 12px 16px; border-radius: 12px;
+            background: var(--bg-app); color: var(--text-main); font-size: 0.92rem;
+            resize: none; max-height: 160px; line-height: 1.5; font-family: inherit;
+        }
+        .chat-input:focus { outline: 2px solid var(--accent); outline-offset: -1px; }
+
+        /* ---------- Model selector button ---------- */
+        .model-select-btn {
+            display: flex; align-items: center; gap: 8px;
+            border: 1px solid var(--border); background: var(--bg-app); color: var(--text-main);
+            padding: 6px 12px; border-radius: 8px; cursor: pointer; font-size: 0.8rem; font-weight: 600;
+            transition: var(--transition); white-space: nowrap;
+        }
+        .model-select-btn:hover { background: var(--border); }
+        .model-select-btn .chevron { font-size: 0.6rem; color: var(--text-muted); }
+
+        /* ---------- Model selector modal ---------- */
+        .model-modal-overlay {
+            position: fixed; inset: 0; background: rgba(15, 23, 42, 0.5);
+            display: none; align-items: center; justify-content: center; z-index: 3000;
+        }
+        .model-modal-overlay.open { display: flex; }
+        .model-modal {
+            background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius);
+            width: min(94vw, 640px); max-height: 85vh; overflow: hidden;
+            display: flex; flex-direction: column;
+            box-shadow: 0 24px 80px rgba(15, 23, 42, 0.25);
+        }
+        .model-modal-header {
+            display: flex; justify-content: space-between; align-items: center;
+            padding: 16px 20px; border-bottom: 1px solid var(--border);
+        }
+        .model-modal-title { font-size: 1.05rem; font-weight: 700; }
+        .model-modal-close {
+            border: none; background: transparent; color: var(--text-muted);
+            font-size: 1.2rem; cursor: pointer; padding: 4px 8px; border-radius: 6px;
+        }
+        .model-modal-close:hover { background: var(--border); color: var(--text-main); }
+        .model-modal-search {
+            margin: 12px 16px; padding: 10px 14px; border: 1px solid var(--border);
+            border-radius: 10px; background: var(--bg-app); color: var(--text-main);
+            font-size: 0.9rem; flex-shrink: 0;
+        }
+        .model-modal-search:focus { outline: 2px solid var(--accent); outline-offset: -1px; }
+
+        .model-modal-filters {
+            display: flex; gap: 6px; padding: 0 16px 10px; flex-wrap: wrap; flex-shrink: 0;
+        }
+        .model-filter-chip {
+            border: 1px solid var(--border); background: transparent; color: var(--text-muted);
+            padding: 5px 12px; border-radius: 999px; cursor: pointer; font-size: 0.78rem;
+            font-weight: 500; transition: var(--transition);
+        }
+        .model-filter-chip:hover { background: var(--border); color: var(--text-main); }
+        .model-filter-chip.active {
+            background: rgba(var(--accent-rgb), 0.12); color: var(--accent); border-color: var(--accent);
+        }
+
+        .model-modal-list { overflow-y: auto; padding: 0 8px 8px; display: flex; flex-direction: column; gap: 2px; }
+        .model-modal-group {
+            font-size: 0.68rem; text-transform: uppercase; letter-spacing: 0.05em;
+            color: var(--text-muted); padding: 10px 10px 4px; font-weight: 700;
+        }
+        .model-modal-item {
+            display: flex; align-items: center; gap: 10px;
+            padding: 10px 12px; border-radius: 10px; border: 1px solid transparent;
+            background: transparent; color: var(--text-main);
+            cursor: pointer; font-size: 0.88rem; text-align: left; width: 100%;
+            transition: var(--transition);
+        }
+        .model-modal-item:hover { background: var(--border); }
+        .model-modal-item.selected { background: rgba(var(--accent-rgb), 0.1); color: var(--accent); border-color: rgba(var(--accent-rgb), 0.3); }
+        .model-modal-item-info { flex: 1; min-width: 0; }
+        .model-modal-item-name { font-weight: 600; display: flex; align-items: center; gap: 8px; }
+        .model-modal-item-desc { font-size: 0.72rem; color: var(--text-muted); margin-top: 2px; font-weight: 400; }
+        .model-modal-item-check { color: var(--accent); font-weight: 700; flex-shrink: 0; }
+        .model-modal-fav {
+            border: none; background: transparent; cursor: pointer; font-size: 1rem;
+            padding: 2px 4px; border-radius: 4px; flex-shrink: 0; transition: var(--transition);
+            color: var(--text-muted);
+        }
+        .model-modal-fav:hover { background: var(--border); }
+        .model-modal-fav.favorited { color: #f59e0b; }
+        .model-modal-favs-header {
+            font-size: 0.68rem; text-transform: uppercase; letter-spacing: 0.05em;
+            color: #f59e0b; padding: 6px 10px 4px; font-weight: 700;
+        }
+        .model-modal-empty { padding: 20px 14px; text-align: center; color: var(--text-muted); font-size: 0.85rem; }
+
+        .model-featured-badge {
+            font-size: 0.6rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em;
+            background: linear-gradient(135deg, #f59e0b, #ec4899); color: white;
+            padding: 2px 6px; border-radius: 6px;
+        }
+        .model-cat-badge {
+            font-size: 0.6rem; font-weight: 600; text-transform: uppercase;
+            background: rgba(var(--accent-rgb), 0.1); color: var(--accent);
+            padding: 2px 6px; border-radius: 6px;
+        }
+
+        /* ---------- Chat manager (My Chats) ---------- */
+        .chat-manager-toolbar {
+            display: flex; gap: 12px; align-items: center; margin-bottom: 20px; flex-wrap: wrap;
+        }
+        .chat-manager-search {
+            flex: 1; min-width: 200px;
+            border: 1px solid var(--border); padding: 10px 14px; border-radius: 10px;
+            background: var(--bg-card); color: var(--text-main); font-size: 0.9rem;
+        }
+        .chat-manager-search:focus { outline: 2px solid var(--accent); outline-offset: -1px; }
+        .chat-manager-list { display: flex; flex-direction: column; gap: 10px; }
+        .chat-manager-item {
+            display: flex; align-items: center; gap: 14px;
+            background: rgba(255, 255, 255, 0.7);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            border-radius: var(--radius);
+            padding: 16px 20px;
+            backdrop-filter: blur(16px);
+            transition: var(--transition);
+            cursor: pointer;
+        }
+        [data-theme="dark"] .chat-manager-item {
+            background: rgba(30, 41, 59, 0.7);
+            border: 1px solid rgba(51, 65, 85, 0.5);
+        }
+        .chat-manager-item:hover { border-color: var(--accent); }
+        .chat-manager-item-info { flex: 1; min-width: 0; }
+        .chat-manager-item-title { font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .chat-manager-item-meta { font-size: 0.78rem; color: var(--text-muted); margin-top: 3px; display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+        .chat-manager-item-model {
+            font-size: 0.72rem; background: rgba(var(--accent-rgb), 0.1); color: var(--accent);
+            padding: 2px 8px; border-radius: 6px; font-weight: 500; white-space: nowrap;
+        }
+        .chat-manager-item-actions { display: flex; gap: 6px; flex-shrink: 0; }
+        .chat-action-btn {
+            border: 1px solid var(--border); background: transparent; color: var(--text-muted);
+            padding: 6px 12px; border-radius: 8px; cursor: pointer; font-size: 0.78rem;
+            transition: var(--transition);
+        }
+        .chat-action-btn:hover { background: var(--border); color: var(--text-main); }
+        .chat-action-btn.danger:hover { color: var(--danger); border-color: var(--danger); }
+        .chat-manager-empty {
+            text-align: center; color: var(--text-muted); padding: 48px 20px; font-size: 0.9rem;
+        }
+        @media (max-width: 600px) {
+            .chat-manager-item { flex-direction: column; align-items: stretch; gap: 10px; }
+            .chat-manager-item-actions { justify-content: flex-end; }
+        }
+
+        /* ---------- Files page (split: explorer + editor) ---------- */
+        .files-page {
+            flex: 1; display: flex; flex-direction: column; overflow: hidden;
+        }
+        .files-toolbar {
+            display: flex; align-items: center; justify-content: space-between; gap: 12px;
+            padding: 12px 20px; border-bottom: 1px solid var(--border); background: var(--bg-card);
+            flex-shrink: 0;
+        }
+        .files-toolbar-title { font-size: 1rem; font-weight: 700; }
+        .files-toolbar-actions { display: flex; gap: 8px; align-items: center; }
+        .files-chat-select {
+            border: 1px solid var(--border); background: var(--bg-app); color: var(--text-main);
+            padding: 6px 10px; border-radius: 8px; font-size: 0.82rem; cursor: pointer;
+            max-width: 220px;
+        }
+        .files-split { flex: 1; display: flex; overflow: hidden; min-height: 0; }
+
+        .file-explorer {
+            width: 280px; flex-shrink: 0;
+            background: var(--bg-card); border-right: 1px solid var(--border);
+            display: flex; flex-direction: column; overflow: hidden;
+        }
+        .file-explorer-header {
+            display: flex; align-items: center; justify-content: space-between;
+            padding: 10px 12px; border-bottom: 1px solid var(--border);
+            font-size: 0.72rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em;
+            color: var(--text-muted);
+        }
+        .file-explorer-search {
+            margin: 10px; padding: 8px 12px; border: 1px solid var(--border); border-radius: 8px;
+            background: var(--bg-app); color: var(--text-main); font-size: 0.82rem; flex-shrink: 0;
+        }
+        .file-explorer-search:focus { outline: 2px solid var(--accent); outline-offset: -1px; }
+        .file-tree { flex: 1; overflow-y: auto; padding: 4px 8px 12px; font-size: 0.84rem; }
+        .file-tree-node {
+            display: flex; align-items: center; gap: 6px; padding: 4px 8px; border-radius: 6px;
+            cursor: pointer; white-space: nowrap; transition: var(--transition); user-select: none;
+        }
+        .file-tree-node:hover { background: var(--border); }
+        .file-tree-node.active { background: rgba(var(--accent-rgb), 0.12); color: var(--accent); }
+        .file-tree-node .ft-icon { width: 16px; height: 16px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; }
+        .file-tree-node .ft-name { overflow: hidden; text-overflow: ellipsis; }
+        .file-tree-root {
+            margin-bottom: 6px;
+            padding-bottom: 0;
+            border: none;
+        }
+        .file-tree-root .file-tree-node {
+            font-weight: 600;
+            background: rgba(var(--accent-rgb), 0.06);
+        }
+        .file-tree-folder .ft-chevron { width: 12px; height: 12px; transition: transform 0.15s ease; flex-shrink: 0; }
+        .file-tree-folder.collapsed .ft-chevron { transform: rotate(-90deg); }
+        .file-tree-children { display: flex; flex-direction: column; }
+        .file-tree-folder.collapsed + .file-tree-children { display: none; }
+        .file-explorer-empty { padding: 20px 14px; text-align: center; color: var(--text-muted); font-size: 0.82rem; }
+
+        .file-editor { flex: 1; display: flex; flex-direction: column; overflow: hidden; min-width: 0; }
+        .file-editor-tabs {
+            display: flex; align-items: flex-end; gap: 2px; padding: 6px 8px 0;
+            background: var(--code-panel); border-bottom: 1px solid var(--code-border);
+            overflow-x: auto; flex-shrink: 0;
+        }
+        .file-editor-tab {
+            display: flex; align-items: center; gap: 6px; padding: 7px 12px;
+            background: var(--code-bg); color: var(--code-muted); border: 1px solid var(--code-border);
+            border-bottom: none; border-radius: 8px 8px 0 0; cursor: pointer; font-size: 0.78rem;
+            white-space: nowrap; flex-shrink: 0;
+        }
+        .file-editor-tab .ft-icon {
+            width: 15px;
+            height: 15px;
+            flex: 0 0 15px;
+        }
+        .file-editor-tab .file-tab-label {
+            overflow: hidden;
+            text-overflow: ellipsis;
+            max-width: 220px;
+        }
+        .file-editor-tab.active { color: var(--code-text); }
+        .file-editor-tab .fet-close { opacity: 0.6; font-size: 0.9rem; }
+        .file-editor-tab .fet-close:hover { opacity: 1; color: var(--danger); }
+
+        .file-editor-bar {
+            display: flex; align-items: center; gap: 10px; padding: 6px 14px;
+            background: var(--code-panel); border-bottom: 1px solid var(--code-border);
+            font-size: 0.74rem; color: var(--code-muted); flex-shrink: 0;
+        }
+        .file-editor-bar .current-path { font-family: ui-monospace, monospace; }
+        .file-editor-bar .dirty-dot { width: 7px; height: 7px; border-radius: 50%; background: #f9e2af; display: none; }
+        .file-editor-bar .dirty-dot.show { display: inline-block; }
+        .file-editor-bar .spacer { flex: 1; }
+        .file-editor-bar .save-btn {
+            background: rgba(var(--accent-rgb), 0.15); color: var(--accent); border: 1px solid rgba(var(--accent-rgb), 0.3);
+            padding: 4px 12px; border-radius: 6px; cursor: pointer; font-size: 0.76rem; font-weight: 600;
+        }
+        .file-editor-bar .save-btn:hover { background: rgba(var(--accent-rgb), 0.25); }
+
+        .code-area { flex: 1; display: flex; overflow: hidden; min-height: 0; background: var(--code-bg); }
+        .code-gutter {
+            width: 48px; flex-shrink: 0; padding: 12px 8px 12px 0; text-align: right;
+            color: var(--code-line-num); background: var(--code-gutter); border-right: 1px solid var(--code-border);
+            font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+            font-size: 13px; line-height: 1.6; overflow: hidden; user-select: none;
+        }
+        .code-gutter div { height: 1.6em; }
+        .code-wrap { flex: 1; position: relative; overflow: hidden; }
+        .code-textarea {
+            position: absolute; inset: 0; margin: 0; padding: 12px 14px;
+            font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+            font-size: 13px; line-height: 1.6; tab-size: 2; white-space: pre; overflow: auto;
+            border: none; outline: none; resize: none; word-wrap: normal; box-sizing: border-box;
+            color: var(--code-text);
+            caret-color: var(--code-text);
+            background: transparent;
+            z-index: 2;
+            -webkit-text-fill-color: var(--code-text);
+            -webkit-caret-color: var(--code-text);
+            font-variant-ligatures: none;
+            font-synthesis: none;
+            scrollbar-width: none;
+        }
+        .code-textarea::selection {
+            background: rgba(var(--accent-rgb), 0.28);
+        }
+        .code-textarea::-webkit-scrollbar {
+            display: none;
+        }
+
+        .file-editor-empty {
+            flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center;
+            gap: 10px; color: var(--code-muted); text-align: center; padding: 40px;
+            background: var(--code-bg);
+        }
+        .file-editor-empty-title { font-size: 1.1rem; font-weight: 700; color: var(--code-text); }
+
+        /* ---------- Placeholder pages (Forge) ---------- */
+        .placeholder-page {
+            flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center;
+            gap: 12px; color: var(--text-muted); text-align: center; padding: 40px;
+        }
+        .placeholder-title { font-size: 1.3rem; font-weight: 700; color: var(--text-main); }
+
+        /* ---------- Settings modal ---------- */
+        .modal-overlay {
+            position: fixed; inset: 0; background: rgba(15, 23, 42, 0.5);
+            display: none; align-items: center; justify-content: center; z-index: 3000;
+        }
+        .modal-overlay.open { display: flex; }
+        .modal {
+            background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius);
+            width: min(92vw, 480px); max-height: 80vh; overflow: hidden;
+            display: flex; flex-direction: column;
+            box-shadow: 0 24px 80px rgba(15, 23, 42, 0.25);
+        }
+        .modal-header {
+            display: flex; justify-content: space-between; align-items: center;
+            padding: 18px 20px; border-bottom: 1px solid var(--border); background: var(--bg-app);
+        }
+        .modal-title { font-size: 1.1rem; font-weight: 700; }
+        .modal-close {
+            border: none; background: transparent; color: var(--text-muted);
+            font-size: 1.2rem; cursor: pointer; padding: 4px 8px; border-radius: 6px;
+        }
+        .modal-close:hover { background: var(--border); color: var(--text-main); }
+        .modal-body { padding: 20px; overflow-y: auto; display: flex; flex-direction: column; gap: 18px; }
+        .settings-row { display: flex; justify-content: space-between; align-items: center; gap: 12px; }
+        .settings-row-label { font-weight: 600; font-size: 0.9rem; }
+        .settings-row-sub { font-size: 0.78rem; color: var(--text-muted); margin-top: 2px; }
+        .accent-color-input {
+            width: 40px; height: 40px; border: 2px solid var(--border); border-radius: 10px;
+            cursor: pointer; padding: 2px; background: var(--bg-card);
+            transition: var(--transition);
+        }
+        .accent-color-input:hover { border-color: var(--accent); }
+        .accent-presets { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 4px; }
+        .accent-preset {
+            width: 28px; height: 28px; border-radius: 50%; border: 2px solid transparent;
+            cursor: pointer; transition: var(--transition);
+        }
+        .accent-preset:hover { transform: scale(1.15); }
+        .accent-preset.active { border-color: var(--text-main); box-shadow: 0 0 0 2px var(--bg-card), 0 0 0 4px var(--text-main); }
+
+        /* ---------- Markdown & Math Formatting ---------- */
+        .chat-msg-bubble {
+            overflow-wrap: break-word;
+            word-wrap: break-word;
+            word-break: break-word;
+        }
+        .chat-msg-bubble strong {
+            font-weight: 700;
+        }
+        .chat-msg-bubble em {
+            font-style: italic;
+        }
+        .chat-msg-bubble h1,
+        .chat-msg-bubble h2,
+        .chat-msg-bubble h3,
+        .chat-msg-bubble h4,
+        .chat-msg-bubble h5,
+        .chat-msg-bubble h6 {
+            color: var(--accent);
+            line-height: 1.2;
+            margin: 12px 0 6px;
+            font-weight: 700;
+        }
+        .chat-msg-bubble h1 { font-size: 1.35rem; }
+        .chat-msg-bubble h2 { font-size: 1.2rem; }
+        .chat-msg-bubble h3 { font-size: 1.08rem; }
+        .chat-msg-bubble h4,
+        .chat-msg-bubble h5,
+        .chat-msg-bubble h6 { font-size: 1rem; }
+        .chat-msg-bubble p { margin: 0 0 8px; }
+        .chat-msg-bubble p:last-child { margin-bottom: 0; }
+        .chat-msg-bubble a {
+            color: var(--accent);
+            text-decoration: underline;
+            text-underline-offset: 2px;
+        }
+        .chat-msg-bubble blockquote {
+            border-left: 3px solid var(--accent);
+            color: var(--text-muted);
+            margin: 8px 0;
+            padding: 4px 0 4px 12px;
+        }
+        .chat-msg-bubble hr {
+            border: none;
+            border-top: 1px solid var(--border);
+            margin: 12px 0;
+        }
+        .chat-msg-bubble ul,
+        .chat-msg-bubble ol {
+            margin: 6px 0 8px 20px;
+            padding-left: 12px;
+        }
+        .chat-msg-bubble code {
+            background: rgba(var(--accent-rgb), 0.1);
+            padding: 1px 4px;
+            border-radius: 3px;
+            font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+            font-size: 0.85em;
+        }
+        .chat-msg-bubble pre {
+            background: var(--code-bg);
+            border: 1px solid var(--code-border);
+            border-radius: 6px;
+            padding: 8px;
+            margin: 6px 0;
+            overflow-x: auto;
+            max-width: 100%;
+        }
+        .chat-msg-bubble pre code {
+            background: transparent;
+            padding: 0;
+            color: var(--code-text);
+            font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+            font-size: 0.85em;
+            line-height: 1.4;
+        }
+        .chat-msg-bubble li {
+            margin: 2px 0;
+            padding-left: 0;
+            position: relative;
+        }
+        
+        /* Tables */
+        .chat-msg-bubble table {
+            border-collapse: collapse;
+            width: 100%;
+            margin: 8px 0;
+            font-size: 0.9em;
+        }
+        .chat-msg-bubble th {
+            border: 1px solid var(--border);
+            padding: 8px;
+            text-align: left;
+            background: rgba(var(--accent-rgb), 0.05);
+            font-weight: 600;
+        }
+        .chat-msg-bubble td {
+            border: 1px solid var(--border);
+            padding: 8px;
+        }
+        
+        .chat-msg-bubble mjx-container {
+            max-width: 100%;
+            overflow-x: auto;
+            overflow-y: hidden;
+        }
+        .chat-msg-bubble mjx-container[display="true"] {
+            margin: 10px 0;
+            padding: 2px 0;
+        }
+
+        /* ---------- Optimise Prompt Button ---------- */
+        .optimise-btn {
+            background: linear-gradient(135deg, var(--accent), #8b5cf6);
+            color: white;
+            border: none;
+            padding: 10px 16px;
+            border-radius: 12px;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 0.85rem;
+            transition: var(--transition);
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            white-space: nowrap;
+        }
+        .optimise-btn:hover {
+            background: linear-gradient(135deg, var(--accent-hover), #7c3aed);
+            transform: translateY(-1px);
+        }
+        .optimise-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        /* ---------- Questionnaire Modal ---------- */
+        .questionnaire-modal-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(15, 23, 42, 0.6);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 4000;
+        }
+        .questionnaire-modal-overlay.open {
+            display: flex;
+        }
+        .questionnaire-modal {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            width: min(94vw, 600px);
+            max-height: 85vh;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            box-shadow: 0 24px 80px rgba(15, 23, 42, 0.3);
+        }
+        .questionnaire-modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 18px 24px;
+            border-bottom: 1px solid var(--border);
+            background: var(--bg-app);
+        }
+        .questionnaire-modal-title {
+            font-size: 1.1rem;
+            font-weight: 700;
+            color: var(--accent);
+        }
+        .questionnaire-modal-close {
+            border: none;
+            background: transparent;
+            color: var(--text-muted);
+            font-size: 1.4rem;
+            cursor: pointer;
+            padding: 4px 10px;
+            border-radius: 6px;
+            transition: var(--transition);
+        }
+        .questionnaire-modal-close:hover {
+            background: var(--border);
+            color: var(--text-main);
+        }
+        .questionnaire-modal-body {
+            padding: 24px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+        .questionnaire-loading {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 40px;
+            gap: 16px;
+            color: var(--text-muted);
+        }
+        .questionnaire-loading .ai-loading {
+            width: 48px;
+            height: 48px;
+        }
+        .questionnaire-item {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+        .questionnaire-item label {
+            font-weight: 600;
+            font-size: 0.9rem;
+            color: var(--text-main);
+        }
+        .questionnaire-item input,
+        .questionnaire-item textarea,
+        .questionnaire-item select {
+            padding: 10px 14px;
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            background: var(--bg-app);
+            color: var(--text-main);
+            font-size: 0.9rem;
+            font-family: inherit;
+            transition: var(--transition);
+        }
+        .questionnaire-item input:focus,
+        .questionnaire-item textarea:focus,
+        .questionnaire-item select:focus {
+            outline: 2px solid var(--accent);
+            outline-offset: -1px;
+        }
+        .questionnaire-item textarea {
+            resize: vertical;
+            min-height: 80px;
+        }
+        .questionnaire-modal-footer {
+            display: flex;
+            justify-content: flex-end;
+            gap: 12px;
+            padding: 16px 24px;
+            border-top: 1px solid var(--border);
+            background: var(--bg-app);
+        }
+        .questionnaire-modal-footer .btn {
+            padding: 10px 20px;
+        }
+        .questionnaire-modal-footer .btn.secondary {
+            background: var(--bg-card);
+            color: var(--text-main);
+            border: 1px solid var(--border);
+        }
+        .questionnaire-modal-footer .btn.secondary:hover {
+            background: var(--border);
+        }
+    </style>
+</head>
+<body>
+
+    <div class="sidebar-backdrop" id="sidebarBackdrop" onclick="closeMobileSidebar()"></div>
+
+    <aside class="sidebar" id="mainSidebar">
+        <div class="logo-area">
+            <div>
+                <div class="logo">SC.AI</div>
+                <div class="logo-sub">by SimpleChibbit</div>
+            </div>
+            <button class="theme-toggle" id="themeToggle" title="Toggle Theme" onclick="toggleTheme()">☀️</button>
+        </div>
+
+        <nav class="nav-section">
+            <div class="nav-section-title">Main</div>
+            <button class="nav-item" onclick="newChat()">
+                <span class="nav-icon" aria-hidden="true">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M21 15a4 4 0 0 1-4 4H7l-4 3V7a4 4 0 0 1 4-4h10a4 4 0 0 1 4 4z"/>
+                        <path d="M12 8v6M9 11h6"/>
+                    </svg>
+                </span>
+                <span>New Chat</span>
+            </button>
+            <button class="nav-item" onclick="openMyChatsTab()">
+                <span class="nav-icon" aria-hidden="true">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M17 8h2a2 2 0 0 1 2 2v6a2 2 0 0 1-2 2h-2v4l-4-4H9a2 2 0 0 1-2-2v-1"/>
+                        <path d="M3 4a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v6a2 2 0 0 1-2 2H9l-4 4v-4H5a2 2 0 0 1-2-2z"/>
+                    </svg>
+                </span>
+                <span>My Chats</span>
+            </button>
+            <button class="nav-item" onclick="openForgeTab()">
+                <span class="nav-icon" aria-hidden="true">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <polyline points="16 18 22 12 16 6"/>
+                        <polyline points="8 6 2 12 8 18"/>
+                    </svg>
+                </span>
+                <span>Forge Agentic Coding</span>
+            </button>
+            <button class="nav-item" onclick="openFilesTab()">
+                <span class="nav-icon" aria-hidden="true">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/>
+                        <polyline points="13 2 13 9 20 9"/>
+                    </svg>
+                </span>
+                <span>Files</span>
+            </button>
+        </nav>
+
+        <nav class="nav-section" style="margin-top: auto;">
+            <button class="nav-item" onclick="openSettings()">
+                <span class="nav-icon" aria-hidden="true">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6z"/>
+                        <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+                    </svg>
+                </span>
+                <span>Settings</span>
+            </button>
+        </nav>
+    </aside>
+
+    <div class="main-area">
+        <!-- Tab bar -->
+        <div class="tab-bar" id="tabBar">
+            <button class="sidebar-toggle" type="button" onclick="toggleSidebar()" aria-label="Toggle menu">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+                    <path d="M4 6h16"/><path d="M4 12h16"/><path d="M4 18h16"/>
+                </svg>
+            </button>
+            <div id="tabsContainer" style="display: flex; align-items: flex-end; gap: 4px;"></div>
+            <button class="tab-add-btn" id="tabAddBtn" title="New tab" aria-label="New tab" onclick="openNewTab()">+</button>
+        </div>
+
+        <!-- Model selector modal -->
+        <div class="model-modal-overlay" id="modelModal" onclick="if (event.target === this) closeModelModal()">
+            <div class="model-modal" role="dialog" aria-modal="true" aria-labelledby="modelModalTitle">
+                <div class="model-modal-header">
+                    <div class="model-modal-title" id="modelModalTitle">Select Model</div>
+                    <button class="model-modal-close" onclick="closeModelModal()" aria-label="Close model selector">&times;</button>
+                </div>
+                <input type="search" class="model-modal-search" id="modelSearchInput" placeholder="Search models..." aria-label="Search models" oninput="renderModelModalList()">
+                <div class="model-modal-filters" id="modelFilters"></div>
+                <div class="model-modal-list" id="modelModalList"></div>
+            </div>
+        </div>
+
+        <!-- Content -->
+        <div class="content-area" id="contentArea"></div>
+    </div>
+
+    <!-- Settings Modal -->
+    <div class="modal-overlay" id="settingsModal" onclick="if (event.target === this) closeSettings()">
+        <div class="modal" role="dialog" aria-modal="true" aria-labelledby="settingsTitle">
+            <div class="modal-header">
+                <div class="modal-title" id="settingsTitle">Settings</div>
+                <button class="modal-close" onclick="closeSettings()" aria-label="Close settings">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="settings-row">
+                    <div>
+                        <div class="settings-row-label">Theme</div>
+                        <div class="settings-row-sub">Switch between light and dark mode</div>
+                    </div>
+                    <button class="btn secondary" onclick="toggleTheme()">Toggle Theme</button>
+                </div>
+                <div class="settings-row">
+                    <div>
+                        <div class="settings-row-label">Accent Color</div>
+                        <div class="settings-row-sub">Customize the app's accent color</div>
+                    </div>
+                    <input type="color" class="accent-color-input" id="accentColorPicker" value="#3b82f6" onchange="setAccentColor(this.value)" title="Pick accent color">
+                </div>
+                <div class="accent-presets" id="accentPresets"></div>
+                <div class="settings-row">
+                    <div>
+                        <div class="settings-row-label">Clear All Chats</div>
+                        <div class="settings-row-sub">Permanently delete every saved chat (and its files)</div>
+                    </div>
+                    <button class="btn secondary" style="color: var(--danger);" onclick="clearAllChats()">Clear</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Questionnaire Modal -->
+    <div class="questionnaire-modal-overlay" id="questionnaireModal" onclick="if (event.target === this) closeQuestionnaireModal()">
+        <div class="questionnaire-modal" role="dialog" aria-modal="true" aria-labelledby="questionnaireTitle">
+            <div class="questionnaire-modal-header">
+                <div class="questionnaire-modal-title" id="questionnaireTitle">Optimise Your Prompt</div>
+                <button class="questionnaire-modal-close" onclick="closeQuestionnaireModal()" aria-label="Close questionnaire">&times;</button>
+            </div>
+            <div class="questionnaire-modal-body" id="questionnaireBody">
+                <div class="questionnaire-loading">
+                    <div class="ai-loading">
+                        <div class="ai-loading-ring"></div>
+                    </div>
+                    <div>Generating questionnaire...</div>
+                </div>
+            </div>
+            <div class="questionnaire-modal-footer" id="questionnaireFooter" style="display: none;">
+                <button class="btn secondary" onclick="closeQuestionnaireModal()">Cancel</button>
+                <button class="btn" onclick="submitQuestionnaire()">Optimise Prompt</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ============================================================
+        // SC.AI — state & persistence (localStorage)
+        //
+        // Storage layout:
+        //   scai_state        -> app state (theme, accent, tabs, selected model, favorites, chat index)
+        //   scai_fs           -> virtual file system: { "<chatId>/messages.json": "...", "<chatId>/file.js": "..." }
+        //
+        // Each chat owns a folder "<chatId>/" containing:
+        //   - messages.json : OpenAI-format array [{role:"user"|"assistant"|"system", content:"..."}]
+        //   - any other files the user creates in the Files tab
+        // ============================================================
+        const STORAGE_KEY = 'scai_state';
+        const FS_KEY = 'scai_fs';
+        const API_BASE = 'https://sc-ai-backend.chibbit99.workers.dev';
+        const MODELS_ENDPOINT = API_BASE + '/models';
+        const CHAT_ENDPOINT = API_BASE + '/v1/chat/completions';
+
+        const ACCENT_PRESETS = [
+            '#3b82f6', '#8b5cf6', '#ec4899', '#f43f5e', '#f97316',
+            '#eab308', '#10b981', '#06b6d4', '#6366f1', '#14b8a6'
+        ];
+
+        let state = {
+            theme: 'light',
+            accentColor: '#3b82f6',
+            chats: {},          // { [id]: { id, title, createdAt, updatedAt, model } }
+            openTabs: ['dashboard'],
+            activeTab: 'dashboard',
+            selectedModel: 'codestral-2508',
+            favoriteModels: [],
+            availableModels: []  // Will be populated from API
+        };
+
+        // Virtual file system: { "path": "content" }
+        let FS = {};
+
+        // ============================================================
+        // Temporary chats — in-memory only. Never written to localStorage
+        // and never given a folder in the virtual file system, so they
+        // don't appear in the Files explorer, My Chats, or the dashboard.
+        // They live only for the lifetime of the tab / page session.
+        // ============================================================
+        let tempChats = {};      // { [id]: { id, title, createdAt, updatedAt, model, temporary:true } }
+        let tempMessages = {};   // { [id]: [ {role, content}, ... ] }
+        function isTempChat(id) { return !!(id && tempChats[id]); }
+        function getChat(id) { return state.chats[id] || tempChats[id] || null; }
+
+
+        // ============================================================
+        // Markdown + MathJax Renderer
+        // This overrides the legacy formatter above. Math is preserved as TeX
+        // for MathJax; Markdown is parsed by marked when the CDN is available.
+        // ============================================================
+        function renderMarkdown(text) {
+            const source = protectMath(text || '');
+            let html;
+
+            if (window.marked) {
+                marked.setOptions({
+                    gfm: true,
+                    breaks: true,
+                    mangle: false,
+                    headerIds: false
+                });
+                if (window.DOMPurify) {
+                    html = marked.parse(source.text);
+                    html = DOMPurify.sanitize(html);
+                } else {
+                    html = marked.parse(escHtml(source.text));
+                }
+            } else {
+                html = fallbackMarkdown(source.text);
+            }
+
+            html = restoreMath(html, source.math);
+            return normalizeRenderedMarkdown(html);
+        }
+
+        function formatStreamingMarkdown(text) {
+            return renderMarkdown(text);
+        }
+
+        function protectMath(text) {
+            const math = [];
+            const source = text.replace(/(```[\s\S]*?```|`[^`\n]*`)|(\$\$[\s\S]*?\$\$|\\\[[\s\S]*?\\\]|\\\([\s\S]*?\\\)|(?<!\\)\$(?!\s)(?:\\.|[^$\n])+(?<!\\)\$)/g, function(match, code, tex) {
+                if (code) return code;
+                const token = '%%SCAI_MATH_' + math.length + '%%';
+                math.push(tex);
+                return token;
+            });
+            return { text: source, math: math };
+        }
+
+        function restoreMath(html, math) {
+            return html.replace(/%%SCAI_MATH_(\d+)%%/g, function(match, index) {
+                return escHtml(math[Number(index)] || match);
+            });
+        }
+
+        function normalizeRenderedMarkdown(html) {
+            // Wrap code blocks with copy button and inline styles
+            html = html.replace(/<pre><code([^>]*)>([\s\S]*?)<\/code><\/pre>/g, function(match, attrs, code) {
+                return '<div class="code-block-wrapper">' +
+                       '<button class="code-block-copy-btn" onclick="copyCodeBlock(this)">Copy</button>' +
+                       '<pre style="background: #1e1e2e; border: 1px solid #313244; border-radius: 6px; padding: 8px; margin: 6px 0; overflow-x: auto; max-width: 100%;"><code' + attrs + ' style="background: transparent; color: #cdd6f4;">' + code + '</code></pre>' +
+                       '</div>';
+            });
+            return html;
+        }
+
+        function fallbackMarkdown(text) {
+            let html = escHtml(text);
+            html = html.replace(/^######\s+(.+)$/gm, '<h6>$1</h6>');
+            html = html.replace(/^#####\s+(.+)$/gm, '<h5>$1</h5>');
+            html = html.replace(/^####\s+(.+)$/gm, '<h4>$1</h4>');
+            html = html.replace(/^###\s+(.+)$/gm, '<h3>$1</h3>');
+            html = html.replace(/^##\s+(.+)$/gm, '<h2>$1</h2>');
+            html = html.replace(/^#\s+(.+)$/gm, '<h1>$1</h1>');
+            html = html.replace(/```(\w*)\n([\s\S]*?)```/g, function(match, lang, code) {
+                return '<div class="code-block-wrapper">' +
+                       '<button class="code-block-copy-btn" onclick="copyCodeBlock(this)">Copy</button>' +
+                       '<pre style="background: #1e1e2e; border: 1px solid #313244; border-radius: 6px; padding: 8px; margin: 6px 0; overflow-x: auto; max-width: 100%;"><code style="background: transparent; color: #cdd6f4;">' + code + '</code></pre>' +
+                       '</div>';
+            });
+            html = html.replace(/`([^`\n]+)`/g, '<code>$1</code>');
+            html = html.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
+            html = html.replace(/\*([^*]+)\*/g, '<em>$1</em>');
+            html = html.replace(/\n/g, '<br>');
+            return html;
+        }
+
+        const mathTypesetTimers = new WeakMap();
+
+        function typesetMathIn(element) {
+            if (!element || !window.MathJax || !MathJax.typesetPromise) return;
+            const existingTimer = mathTypesetTimers.get(element);
+            if (existingTimer) clearTimeout(existingTimer);
+            const timer = setTimeout(function() {
+                mathTypesetTimers.delete(element);
+                if (MathJax.typesetClear) MathJax.typesetClear([element]);
+                MathJax.typesetPromise([element]).catch(function(error) {
+                    console.error('MathJax typeset failed:', error);
+                });
+            }, 80);
+            mathTypesetTimers.set(element, timer);
+        }
+
+        // ============================================================
+        // API Functions
+        // ============================================================
+        function formatModelName(modelId) {
+            // Format model ID to readable name
+            // e.g., "vendouple/qwen3.6-27b" -> "Qwen 3.6-27b"
+            // e.g., "Spit-fires/LFM2.5-230M" -> "LFM 2.5-230M"
+            // e.g., "codestral-2508" -> "Codestral 2508"
+            const parts = modelId.split('/');
+            const lastPart = parts[parts.length - 1];
+            
+            // Handle special cases
+            if (lastPart === 'polly') return 'Polly';
+            if (lastPart === 'qwen-safety') return 'Qwen Safety';
+            
+            // Convert to title case and add spaces before numbers
+            let name = lastPart
+                .replace(/[-_]/g, ' ')
+                .replace(/([a-z])([A-Z])/g, '$1 $2')
+                .replace(/([A-Z]+)([A-Z][a-z])/g, '$1 $2')
+                .toLowerCase()
+                .split(' ')
+                .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+                .join(' ');
+            
+            // Add spaces before numbers if needed
+            name = name.replace(/([a-zA-Z])(\d)/g, '$1 $2');
+            
+            return name;
+        }
+
+        async function fetchModels() {
+            try {
+                const response = await fetch(MODELS_ENDPOINT);
+                const data = await response.json();
+                if (data && data.data && Array.isArray(data.data)) {
+                    state.availableModels = data.data.map(function (model) {
+                        return {
+                            id: model.id,
+                            name: formatModelName(model.id),
+                            desc: model.owned_by || 'Community',
+                            group: model.owned_by || 'Community',
+                            category: 'general',
+                            featured: false
+                        };
+                    });
+                    // Set default model if not already set
+                    if (!state.selectedModel || !state.availableModels.find(m => m.id === state.selectedModel)) {
+                        state.selectedModel = state.availableModels[0]?.id || 'codestral-2508';
+                    }
+                    saveState();
+                    return state.availableModels;
+                }
+            } catch (error) {
+                console.error('Failed to fetch models:', error);
+                // Fallback to default models if fetch fails
+                state.availableModels = AVAILABLE_MODELS;
+                return state.availableModels;
+            }
+        }
+
+        const STATIC_TABS = ['dashboard', 'mychats', 'forge', 'files', 'newtab'];
+
+        function loadState() {
+            try {
+                const saved = localStorage.getItem(STORAGE_KEY);
+                if (saved) {
+                    const parsed = JSON.parse(saved);
+                    state = { ...state, ...parsed };
+                }
+            } catch (e) { /* ignore corrupt state */ }
+            try {
+                const fsSaved = localStorage.getItem(FS_KEY);
+                if (fsSaved) FS = JSON.parse(fsSaved) || {};
+            } catch (e) { FS = {}; }
+
+            if (!state.openTabs.includes('dashboard')) state.openTabs.unshift('dashboard');
+            state.openTabs = state.openTabs.filter(function (id) {
+                return STATIC_TABS.includes(id) || state.chats[id];
+            });
+            if (!state.openTabs.includes(state.activeTab)) state.activeTab = 'dashboard';
+            Object.values(state.chats).forEach(function (chat) {
+                if (!chat.model) chat.model = state.selectedModel || 'sc-core-1';
+                // Ensure each chat has a messages.json
+                ensureChatFolder(chat.id);
+            });
+        }
+
+        function saveState() {
+            try { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); } catch (e) {}
+        }
+
+        function saveFS() {
+            try { localStorage.setItem(FS_KEY, JSON.stringify(FS)); } catch (e) {}
+        }
+
+        // ============================================================
+        // File system helpers (per-chat folders + messages.json)
+        // ============================================================
+        function chatDir(chatId) { return chatId + '/'; }
+        function chatMessagesPath(chatId) { return chatId + '/messages.json'; }
+
+        function ensureChatFolder(chatId) {
+            // Temporary chats never touch the virtual file system.
+            if (isTempChat(chatId)) {
+                if (!tempMessages[chatId]) tempMessages[chatId] = [];
+                return;
+            }
+            const path = chatMessagesPath(chatId);
+            if (!(path in FS)) {
+                FS[path] = '[]';
+                saveFS();
+            }
+        }
+
+        // Read OpenAI-format messages for a chat
+        function readChatMessages(chatId) {
+            // Temporary chats keep their messages only in memory.
+            if (isTempChat(chatId)) {
+                if (!tempMessages[chatId]) tempMessages[chatId] = [];
+                return tempMessages[chatId];
+            }
+            const path = chatMessagesPath(chatId);
+            ensureChatFolder(chatId);
+            try {
+                const arr = JSON.parse(FS[path] || '[]');
+                return Array.isArray(arr) ? arr : [];
+            } catch (e) { return []; }
+        }
+
+        // Write OpenAI-format messages for a chat
+        function writeChatMessages(chatId, messages) {
+            // Temporary chats keep their messages only in memory.
+            if (isTempChat(chatId)) {
+                tempMessages[chatId] = messages;
+                return;
+            }
+            const path = chatMessagesPath(chatId);
+            FS[path] = JSON.stringify(messages, null, 2);
+            saveFS();
+        }
+
+        // Convert internal msg {role, text, ts} -> OpenAI {role, content}
+        // We keep role as-is; 'ai' maps to 'assistant'.
+        function toOpenAIRole(role) { return role === 'ai' ? 'assistant' : role; }
+        function fromOpenAIRole(role) { return role === 'assistant' ? 'ai' : role; }
+
+        // Append a message to a chat's messages.json (OpenAI format)
+        function appendMessageToFS(chatId, role, text) {
+            const messages = readChatMessages(chatId);
+            messages.push({ role: toOpenAIRole(role), content: text });
+            writeChatMessages(chatId, messages);
+        }
+
+        // List files belonging to a chat folder
+        function listChatFiles(chatId) {
+            const prefix = chatDir(chatId);
+            return Object.keys(FS).filter(function (p) { return p.startsWith(prefix); }).sort();
+        }
+
+        // Delete all files for a chat folder
+        function deleteChatFolder(chatId) {
+            const prefix = chatDir(chatId);
+            Object.keys(FS).forEach(function (p) {
+                if (p.startsWith(prefix)) delete FS[p];
+            });
+            saveFS();
+        }
+
+        // ============================================================
+        // Theme
+        // ============================================================
+        function applyTheme() {
+            document.documentElement.setAttribute('data-theme', state.theme);
+            const btn = document.getElementById('themeToggle');
+            if (btn) btn.textContent = state.theme === 'dark' ? '🌙' : '☀️';
+        }
+        function toggleTheme() {
+            state.theme = state.theme === 'dark' ? 'light' : 'dark';
+            applyTheme();
+            applyAccentColor();
+            saveState();
+        }
+
+        // ============================================================
+        // Accent Color
+        // ============================================================
+        function hexToRgb(hex) {
+            const r = parseInt(hex.slice(1, 3), 16);
+            const g = parseInt(hex.slice(3, 5), 16);
+            const b = parseInt(hex.slice(5, 7), 16);
+            return r + ', ' + g + ', ' + b;
+        }
+        function darkenHex(hex, amount) {
+            let r = parseInt(hex.slice(1, 3), 16), g = parseInt(hex.slice(3, 5), 16), b = parseInt(hex.slice(5, 7), 16);
+            r = Math.max(0, r - amount); g = Math.max(0, g - amount); b = Math.max(0, b - amount);
+            return '#' + [r, g, b].map(function (c) { return c.toString(16).padStart(2, '0'); }).join('');
+        }
+        function lightenHex(hex, amount) {
+            let r = parseInt(hex.slice(1, 3), 16), g = parseInt(hex.slice(3, 5), 16), b = parseInt(hex.slice(5, 7), 16);
+            r = Math.min(255, r + amount); g = Math.min(255, g + amount); b = Math.min(255, b + amount);
+            return '#' + [r, g, b].map(function (c) { return c.toString(16).padStart(2, '0'); }).join('');
+        }
+        function applyAccentColor() {
+            const root = document.documentElement;
+            const color = state.accentColor;
+            const hoverColor = state.theme === 'dark' ? lightenHex(color, 30) : darkenHex(color, 30);
+            const rgb = hexToRgb(color);
+            root.style.setProperty('--accent', color);
+            root.style.setProperty('--accent-hover', hoverColor);
+            root.style.setProperty('--accent-rgb', rgb);
+            root.style.setProperty('--primary', color);
+            root.style.setProperty('--primary-hover', hoverColor);
+            const picker = document.getElementById('accentColorPicker');
+            if (picker) picker.value = color;
+            renderAccentPresets();
+        }
+        function setAccentColor(color) { state.accentColor = color; applyAccentColor(); saveState(); }
+        function renderAccentPresets() {
+            const container = document.getElementById('accentPresets');
+            if (!container) return;
+            container.innerHTML = '';
+            ACCENT_PRESETS.forEach(function (preset) {
+                const dot = document.createElement('span');
+                dot.className = 'accent-preset' + (state.accentColor === preset ? ' active' : '');
+                dot.style.backgroundColor = preset;
+                dot.title = preset;
+                dot.setAttribute('role', 'button');
+                dot.setAttribute('aria-label', 'Set accent to ' + preset);
+                dot.onclick = function () { setAccentColor(preset); };
+                container.appendChild(dot);
+            });
+        }
+
+        // ============================================================
+        // Sidebar (mobile)
+        // ============================================================
+        function toggleSidebar() { document.body.classList.toggle('sidebar-open'); }
+        function closeMobileSidebar() { document.body.classList.remove('sidebar-open'); }
+
+        // ============================================================
+        // Tabs
+        // ============================================================
+        function tabTitle(id) {
+            if (id === 'dashboard') return 'Dashboard';
+            if (id === 'mychats') return 'My Chats';
+            if (id === 'forge') return 'Forge';
+            if (id === 'files') return 'Files';
+            if (id === 'newtab') return 'New Tab';
+            const chat = getChat(id);
+            if (chat) return isTempChat(id) ? '🕶 ' + chat.title : chat.title;
+            return 'Chat';
+        }
+        function openTab(id) {
+            if (!state.openTabs.includes(id)) state.openTabs.push(id);
+            state.activeTab = id;
+            // close any newtab tab if opening something real
+            if (id !== 'newtab') {
+                const ntIdx = state.openTabs.indexOf('newtab');
+                if (ntIdx !== -1) state.openTabs.splice(ntIdx, 1);
+            }
+            saveState();
+            render();
+            closeMobileSidebar();
+        }
+        function closeTab(id, event) {
+            if (event) event.stopPropagation();
+            if (id === 'dashboard') return;
+            const idx = state.openTabs.indexOf(id);
+            if (idx === -1) return;
+            state.openTabs.splice(idx, 1);
+            // Temporary chats are discarded entirely when their tab closes.
+            if (isTempChat(id)) {
+                delete tempChats[id];
+                delete tempMessages[id];
+            }
+            if (state.activeTab === id) state.activeTab = state.openTabs[Math.max(0, idx - 1)] || 'dashboard';
+            saveState();
+            render();
+        }
+        function renderTabs() {
+            const container = document.getElementById('tabsContainer');
+            container.innerHTML = '';
+            state.openTabs.forEach(function (id) {
+                const tab = document.createElement('div');
+                tab.className = 'tab' + (state.activeTab === id ? ' active' : '');
+                tab.setAttribute('role', 'tab');
+                tab.setAttribute('aria-selected', String(state.activeTab === id));
+                tab.onclick = function () { openTab(id); };
+                const label = document.createElement('span');
+                label.className = 'tab-label';
+                label.textContent = tabTitle(id);
+                tab.appendChild(label);
+                if (id !== 'dashboard') {
+                    const close = document.createElement('button');
+                    close.className = 'tab-close';
+                    close.setAttribute('aria-label', 'Close tab');
+                    close.innerHTML = '&times;';
+                    close.onclick = function (e) { closeTab(id, e); };
+                    tab.appendChild(close);
+                }
+                container.appendChild(tab);
+            });
+        }
+
+        // ============================================================
+        // New tab
+        // ============================================================
+        function openNewTab() {
+            if (state.openTabs.includes('newtab')) {
+                state.activeTab = 'newtab';
+                saveState();
+                render();
+                return;
+            }
+            state.openTabs.push('newtab');
+            state.activeTab = 'newtab';
+            saveState();
+            render();
+        }
+
+        // ============================================================
+        // Chats (CRUD)
+        // ============================================================
+        function newChat() {
+            const id = 'chat_' + Date.now() + '_' + Math.random().toString(36).slice(2, 7);
+            const now = Date.now();
+            state.chats[id] = {
+                id: id, title: 'New Chat', createdAt: now, updatedAt: now, model: state.selectedModel
+            };
+            ensureChatFolder(id);
+            if (!filesState.selectedChat || !state.chats[filesState.selectedChat]) {
+                filesState.selectedChat = id;
+            }
+            saveState();
+            openTab(id);
+        }
+
+        function deleteChat(id) {
+            if (!state.chats[id]) return;
+            if (!confirm('Delete "' + state.chats[id].title + '"? This also deletes its files. This cannot be undone.')) return;
+            delete state.chats[id];
+            deleteChatFolder(id);
+            const idx = state.openTabs.indexOf(id);
+            if (idx !== -1) state.openTabs.splice(idx, 1);
+            if (state.activeTab === id) state.activeTab = 'dashboard';
+            saveState();
+            render();
+        }
+
+        function renameChat(id) {
+            const chat = getChat(id);
+            if (!chat) return;
+            const name = prompt('Rename chat:', chat.title);
+            if (name && name.trim()) {
+                chat.title = name.trim();
+                chat.updatedAt = Date.now();
+                if (!isTempChat(id)) saveState();
+                render();
+            }
+        }
+
+        // Create a temporary chat: lives only in memory, is never persisted
+        // to localStorage and never given a folder in the Files explorer.
+        function newTemporaryChat() {
+            const id = 'temp_' + Date.now() + '_' + Math.random().toString(36).slice(2, 7);
+            const now = Date.now();
+            tempChats[id] = {
+                id: id, title: 'Temporary Chat', createdAt: now, updatedAt: now,
+                model: state.selectedModel, temporary: true
+            };
+            tempMessages[id] = [];
+            openTab(id);
+        }
+
+
+        function clearAllChats() {
+            if (!confirm('Delete ALL chats and their files? This cannot be undone.')) return;
+            Object.keys(state.chats).forEach(deleteChatFolder);
+            state.chats = {};
+            state.openTabs = state.openTabs.filter(function (id) { return STATIC_TABS.includes(id); });
+            state.activeTab = 'dashboard';
+            saveState();
+            render();
+            closeSettings();
+        }
+
+        // ============================================================
+        // Chat messaging (messages.json-backed, real AI with streaming)
+        // ============================================================
+        function sendMessage(event, chatId) {
+            event.preventDefault();
+            const input = document.getElementById('chatInput-' + chatId);
+            const text = input.value.trim();
+            if (!text) return;
+            const chat = getChat(chatId);
+            if (!chat) return;
+
+            appendMessageToFS(chatId, 'user', text);
+            if (chat.title === 'New Chat' || chat.title === 'Temporary Chat') {
+                const msgs = readChatMessages(chatId);
+                if (msgs.length === 1) {
+                    chat.title = text.length > 32 ? text.slice(0, 32) + '…' : text;
+                }
+            }
+            chat.updatedAt = Date.now();
+            if (!isTempChat(chatId)) saveState();
+            input.value = '';
+            input.style.height = 'auto';
+            render();
+            showTyping(chatId);
+
+            // Real AI response with streaming
+            streamAiResponse(chatId, text, chat.model || state.selectedModel);
+        }
+
+        async function streamAiResponse(chatId, userText, modelId) {
+            const messages = readChatMessages(chatId);
+            // Convert to OpenAI format (assistant -> ai)
+            const apiMessages = messages.map(function (m) {
+                return {
+                    role: m.role === 'ai' ? 'assistant' : m.role,
+                    content: m.content
+                };
+            });
+
+            // Remove typing indicator and create AI message bubble with loading animation
+            removeTyping(chatId);
+            const messagesEl = document.getElementById('chatMessages-' + chatId);
+            if (!messagesEl) return;
+
+            const wrap = document.createElement('div');
+            wrap.className = 'chat-msg ai';
+            wrap.id = 'ai-response-' + chatId;
+            wrap.innerHTML =
+                '<div class="chat-msg-avatar">AI</div>' +
+                '<div class="chat-msg-bubble"><div class="typing-indicator">' +
+                '<div class="ai-loading">' +
+                '<div class="ai-loading-ring"></div>' +
+                '</div>' +
+                '<span class="typing-text">AI is thinking</span>' +
+                '</div></div>';
+            messagesEl.appendChild(wrap);
+            const bubble = wrap.querySelector('.chat-msg-bubble');
+            messagesEl.scrollTop = messagesEl.scrollHeight;
+
+            let fullResponse = '';
+
+            try {
+                const response = await fetch(CHAT_ENDPOINT + '?format=text', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        model: modelId,
+                        messages: apiMessages,
+                        stream: true
+                    })
+                });
+
+                if (!response.ok) {
+                    throw new Error('API request failed: ' + response.statusText);
+                }
+
+                const reader = response.body.getReader();
+                const decoder = new TextDecoder();
+
+                while (true) {
+                    const { done, value } = await reader.read();
+                    if (done) break;
+
+                    const text = decoder.decode(value, { stream: true });
+                    fullResponse += text;
+                    
+                    // Only replace loading animation once we have actual content
+                    if (fullResponse.trim()) {
+                        bubble.innerHTML = formatStreamingMarkdown(fullResponse);
+                        typesetMathIn(bubble);
+                    }
+                    messagesEl.scrollTop = messagesEl.scrollHeight;
+                }
+
+                // Save the complete response
+                appendMessageToFS(chatId, 'ai', fullResponse);
+                const doneChat = getChat(chatId);
+                if (doneChat) doneChat.updatedAt = Date.now();
+                if (!isTempChat(chatId)) saveState();
+
+                // Re-render to show the final message properly
+                if (state.activeTab === chatId) {
+                    render();
+                }
+
+            } catch (error) {
+                console.error('Error streaming AI response:', error);
+                bubble.textContent = 'Error: ' + error.message;
+                appendMessageToFS(chatId, 'ai', 'Error: ' + error.message);
+                const errChat = getChat(chatId);
+                if (errChat) errChat.updatedAt = Date.now();
+                if (!isTempChat(chatId)) saveState();
+            }
+        }
+
+        function removeTyping(chatId) {
+            const typing = document.getElementById('typing-' + chatId);
+            if (typing) typing.remove();
+        }
+
+        function showTyping(chatId) {
+            const messagesEl = document.getElementById('chatMessages-' + chatId);
+            if (!messagesEl) return;
+            const wrap = document.createElement('div');
+            wrap.className = 'chat-msg ai';
+            wrap.id = 'typing-' + chatId;
+            wrap.innerHTML =
+                '<div class="chat-msg-avatar">AI</div>' +
+                '<div class="chat-msg-bubble"><div class="typing-indicator">' +
+                '<div class="ai-loading">' +
+                '<div class="ai-loading-ring"></div>' +
+                '</div>' +
+                '<span class="typing-text">AI is thinking</span>' +
+                '</div></div>';
+            messagesEl.appendChild(wrap);
+            messagesEl.scrollTop = messagesEl.scrollHeight;
+        }
+
+        function handleChatKeydown(event, chatId) {
+            if (event.key === 'Enter' && !event.shiftKey) {
+                if (event.nativeEvent ? event.nativeEvent.isComposing : (event.isComposing || event.keyCode === 229)) return;
+                event.preventDefault();
+                document.getElementById('chatForm-' + chatId).requestSubmit();
+            }
+        }
+        function autoGrow(el) { el.style.height = 'auto'; el.style.height = Math.min(el.scrollHeight, 160) + 'px'; }
+
+        // ============================================================
+        // Message Actions (Copy, Edit)
+        // ============================================================
+        function copyMessageText(text, button) {
+            navigator.clipboard.writeText(text).then(function () {
+                if (button) {
+                    const originalText = button.innerHTML;
+                    button.innerHTML = '✓ Copied';
+                    button.classList.add('copied');
+                    setTimeout(function () {
+                        button.innerHTML = originalText;
+                        button.classList.remove('copied');
+                    }, 2000);
+                }
+            }).catch(function (err) {
+                console.error('Failed to copy message:', err);
+            });
+        }
+
+        function editUserMessage(chatId, msgIndex, originalText, bubble, actions) {
+            // Hide action buttons and show inline editor
+            actions.style.display = 'none';
+            
+            const originalContent = bubble.innerHTML;
+            bubble.innerHTML = '';
+            
+            const textarea = document.createElement('textarea');
+            textarea.className = 'edit-message-input';
+            textarea.value = originalText;
+            textarea.onkeydown = function(e) {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault();
+                    saveEdit();
+                }
+            };
+            
+            const actionsDiv = document.createElement('div');
+            actionsDiv.className = 'edit-message-actions';
+            
+            const saveBtn = document.createElement('button');
+            saveBtn.className = 'save-btn';
+            saveBtn.textContent = 'Save';
+            saveBtn.onclick = saveEdit;
+            
+            const cancelBtn = document.createElement('button');
+            cancelBtn.className = 'cancel-btn';
+            cancelBtn.textContent = 'Cancel';
+            cancelBtn.onclick = cancelEdit;
+            
+            actionsDiv.appendChild(saveBtn);
+            actionsDiv.appendChild(cancelBtn);
+            
+            bubble.appendChild(textarea);
+            bubble.appendChild(actionsDiv);
+            textarea.focus();
+            
+            function saveEdit() {
+                const newText = textarea.value.trim();
+                if (newText === '' || newText === originalText) {
+                    cancelEdit();
+                    return;
+                }
+
+                const messages = readChatMessages(chatId);
+                if (msgIndex >= messages.length) return;
+
+                // Update the user message in place
+                messages[msgIndex].content = newText;
+                
+                // Remove all AI responses after this message
+                messages.splice(msgIndex + 1);
+                
+                writeChatMessages(chatId, messages);
+                
+                const chat = getChat(chatId);
+                if (chat) chat.updatedAt = Date.now();
+                if (!isTempChat(chatId)) saveState();
+                
+                // Trigger new AI response
+                render();
+                showTyping(chatId);
+                
+                streamAiResponse(chatId, newText, (chat && chat.model) || state.selectedModel);
+            }
+            
+            function cancelEdit() {
+                bubble.innerHTML = originalContent;
+                actions.style.display = 'flex';
+            }
+        }
+
+        function copyCodeBlock(button) {
+            const wrapper = button.closest('.code-block-wrapper');
+            const codeEl = wrapper.querySelector('code');
+            const text = codeEl.textContent;
+            
+            navigator.clipboard.writeText(text).then(function () {
+                button.textContent = 'Copied!';
+                button.classList.add('copied');
+                setTimeout(function () {
+                    button.textContent = 'Copy';
+                    button.classList.remove('copied');
+                }, 2000);
+            }).catch(function (err) {
+                console.error('Failed to copy code:', err);
+            });
+        }
+
+        // ============================================================
+        // Rendering — content area
+        // ============================================================
+        function render() {
+            renderTabs();
+            const area = document.getElementById('contentArea');
+            area.innerHTML = '';
+            const id = state.activeTab;
+            if (id === 'dashboard') area.appendChild(renderDashboard());
+            else if (id === 'mychats') area.appendChild(renderMyChats());
+            else if (id === 'forge') area.appendChild(renderPlaceholder('Forge Agentic Coding', 'The Forge agentic coding workspace is coming soon.'));
+            else if (id === 'files') area.appendChild(renderFilesPage());
+            else if (id === 'newtab') area.appendChild(renderNewTabPage());
+            else if (getChat(id)) area.appendChild(renderChat(id));
+            else { state.activeTab = 'dashboard'; area.appendChild(renderDashboard()); }
+            updateClock();
+        }
+
+        // ---------- Dashboard ----------
+        function renderDashboard() {
+            const page = document.createElement('div');
+            page.className = 'page';
+            page.innerHTML =
+                '<div class="page-header"><h1 class="page-title">Dashboard</h1></div>' +
+                '<div class="home-grid">' +
+                    '<div class="home-card">' +
+                        '<div class="greeting-section" id="greeting">Hello!</div>' +
+                        '<div class="time-display" id="timeDisplay">--:--</div>' +
+                        '<div class="date-display" id="dateDisplay"></div>' +
+                        '<button class="btn" style="margin-top: 20px;" onclick="newChat()">+ New Chat</button>' +
+                    '</div>' +
+                    '<div class="home-card">' +
+                        '<div style="font-weight: 600; margin-bottom: 12px;">Recent Chats</div>' +
+                        '<div id="recentChats"></div>' +
+                    '</div>' +
+                '</div>' +
+                '<div class="quick-ai-ask">' +
+                    '<div class="quick-ai-ask-title">Quick AI Ask</div>' +
+                    '<form class="quick-ai-ask-form" onsubmit="handleQuickAsk(event)">' +
+                        '<input type="text" id="quickAiInput" class="quick-ai-ask-input" placeholder="Ask SC.AI anything..." autocomplete="off">' +
+                        '<button class="btn" type="submit">Send</button>' +
+                    '</form>' +
+                '</div>';
+
+            const recent = page.querySelector('#recentChats');
+            const chats = Object.values(state.chats).sort(function (a, b) { return b.updatedAt - a.updatedAt; }).slice(0, 5);
+            if (chats.length === 0) {
+                const hint = document.createElement('div');
+                hint.className = 'empty-hint';
+                hint.textContent = 'No chats yet. Start a new chat to see it here.';
+                recent.appendChild(hint);
+            } else {
+                chats.forEach(function (chat) {
+                    const item = document.createElement('div');
+                    item.className = 'recent-chat-item';
+                    item.onclick = function () { openTab(chat.id); };
+                    const title = document.createElement('div');
+                    title.className = 'recent-chat-title';
+                    title.textContent = chat.title;
+                    const meta = document.createElement('div');
+                    meta.className = 'recent-chat-meta';
+                    const msgCount = readChatMessages(chat.id).length;
+                    const modelName = modelById(chat.model || state.selectedModel).name;
+                    meta.textContent = modelName + ' · ' + msgCount + ' msg' + (msgCount === 1 ? '' : 's');
+                    item.appendChild(title); item.appendChild(meta);
+                    recent.appendChild(item);
+                });
+            }
+            return page;
+        }
+
+        function handleQuickAsk(event) {
+            event.preventDefault();
+            const input = document.getElementById('quickAiInput');
+            const text = input.value.trim();
+            if (!text) return;
+            const id = 'chat_' + Date.now() + '_' + Math.random().toString(36).slice(2, 7);
+            const now = Date.now();
+            state.chats[id] = {
+                id: id, title: text.length > 32 ? text.slice(0, 32) + '…' : text,
+                createdAt: now, updatedAt: now, model: state.selectedModel
+            };
+            ensureChatFolder(id);
+            appendMessageToFS(id, 'user', text);
+            saveState();
+            openTab(id);
+            showTyping(id);
+            streamAiResponse(id, text, state.selectedModel);
+        }
+
+        // ---------- My Chats ----------
+        let chatManagerQuery = '';
+        function openMyChatsTab() { openTab('mychats'); }
+        function renderMyChats() {
+            const page = document.createElement('div');
+            page.className = 'page';
+            const header = document.createElement('div');
+            header.className = 'page-header';
+            const title = document.createElement('h1');
+            title.className = 'page-title';
+            title.textContent = 'My Chats';
+            const newBtn = document.createElement('button');
+            newBtn.className = 'btn';
+            newBtn.textContent = '+ New Chat';
+            newBtn.onclick = function () { newChat(); };
+            header.appendChild(title); header.appendChild(newBtn);
+            page.appendChild(header);
+
+            const toolbar = document.createElement('div');
+            toolbar.className = 'chat-manager-toolbar';
+            const search = document.createElement('input');
+            search.type = 'search';
+            search.className = 'chat-manager-search';
+            search.placeholder = 'Search chats...';
+            search.value = chatManagerQuery;
+            search.setAttribute('aria-label', 'Search chats');
+            search.oninput = function () { chatManagerQuery = search.value; renderChatManagerList(list); };
+            toolbar.appendChild(search);
+            page.appendChild(toolbar);
+
+            const list = document.createElement('div');
+            list.className = 'chat-manager-list';
+            page.appendChild(list);
+            renderChatManagerList(list);
+            return page;
+        }
+
+        function renderChatManagerList(list) {
+            list.innerHTML = '';
+            const q = chatManagerQuery.trim().toLowerCase();
+            const chats = Object.values(state.chats)
+                .sort(function (a, b) { return b.updatedAt - a.updatedAt; })
+                .filter(function (chat) {
+                    if (!q) return true;
+                    if (chat.title.toLowerCase().includes(q)) return true;
+                    const modelName = modelById(chat.model || state.selectedModel).name.toLowerCase();
+                    if (modelName.includes(q)) return true;
+                    return readChatMessages(chat.id).some(function (m) {
+                        return (m.content || '').toLowerCase().includes(q);
+                    });
+                });
+
+            if (chats.length === 0) {
+                const empty = document.createElement('div');
+                empty.className = 'chat-manager-empty';
+                empty.textContent = q ? 'No chats match "' + chatManagerQuery.trim() + '".' : 'No chats yet. Create your first chat to get started.';
+                list.appendChild(empty);
+                return;
+            }
+
+            chats.forEach(function (chat) {
+                const item = document.createElement('div');
+                item.className = 'chat-manager-item';
+                item.onclick = function () { openTab(chat.id); };
+                const info = document.createElement('div');
+                info.className = 'chat-manager-item-info';
+                const t = document.createElement('div');
+                t.className = 'chat-manager-item-title';
+                t.textContent = chat.title;
+                const meta = document.createElement('div');
+                meta.className = 'chat-manager-item-meta';
+                const modelBadge = document.createElement('span');
+                modelBadge.className = 'chat-manager-item-model';
+                modelBadge.textContent = modelById(chat.model || state.selectedModel).name;
+                const msgCount = readChatMessages(chat.id).length;
+                const msgCountEl = document.createElement('span');
+                msgCountEl.textContent = msgCount + ' message' + (msgCount === 1 ? '' : 's');
+                const lastUsed = document.createElement('span');
+                const d = new Date(chat.updatedAt);
+                const now = new Date();
+                const diffMs = now - d;
+                const diffMins = Math.floor(diffMs / 60000);
+                const diffHours = Math.floor(diffMs / 3600000);
+                const diffDays = Math.floor(diffMs / 86400000);
+                if (diffMins < 1) lastUsed.textContent = 'Just now';
+                else if (diffMins < 60) lastUsed.textContent = diffMins + 'm ago';
+                else if (diffHours < 24) lastUsed.textContent = diffHours + 'h ago';
+                else if (diffDays < 7) lastUsed.textContent = diffDays + 'd ago';
+                else lastUsed.textContent = d.toLocaleDateString([], { month: 'short', day: 'numeric' });
+                meta.appendChild(modelBadge); meta.appendChild(msgCountEl); meta.appendChild(lastUsed);
+                info.appendChild(t); info.appendChild(meta);
+
+                const actions = document.createElement('div');
+                actions.className = 'chat-manager-item-actions';
+                const openBtn = document.createElement('button');
+                openBtn.className = 'chat-action-btn'; openBtn.textContent = 'Open';
+                openBtn.onclick = function (e) { e.stopPropagation(); openTab(chat.id); };
+                const renameBtn = document.createElement('button');
+                renameBtn.className = 'chat-action-btn'; renameBtn.textContent = 'Rename';
+                renameBtn.onclick = function (e) { e.stopPropagation(); renameChat(chat.id); };
+                const delBtn = document.createElement('button');
+                delBtn.className = 'chat-action-btn danger'; delBtn.textContent = 'Delete';
+                delBtn.onclick = function (e) { e.stopPropagation(); deleteChat(chat.id); };
+                actions.appendChild(openBtn); actions.appendChild(renameBtn); actions.appendChild(delBtn);
+
+                item.appendChild(info); item.appendChild(actions);
+                list.appendChild(item);
+            });
+        }
+
+        // ---------- Model selector (with categories, featured, favorites) ----------
+        const AVAILABLE_MODELS = [
+            { id: 'sc-core-1', name: 'SC Core 1', desc: 'Balanced everyday model', group: 'SimpleChibbit', category: 'general', featured: true },
+            { id: 'sc-core-1-mini', name: 'SC Core 1 Mini', desc: 'Fast and lightweight', group: 'SimpleChibbit', category: 'fast', featured: false },
+            { id: 'sc-reason-pro', name: 'SC Reason Pro', desc: 'Deep reasoning for hard problems', group: 'SimpleChibbit', category: 'reasoning', featured: true },
+            { id: 'sc-coder-x', name: 'SC Coder X', desc: 'Optimized for code generation', group: 'SimpleChibbit', category: 'coding', featured: true },
+            { id: 'nimbus-4', name: 'Nimbus 4', desc: 'Creative writing specialist', group: 'Partner Models', category: 'creative', featured: false },
+            { id: 'quasar-ultra', name: 'Quasar Ultra', desc: 'Largest context window', group: 'Partner Models', category: 'long-context', featured: true },
+            { id: 'pico-flash', name: 'Pico Flash', desc: 'Instant responses, lower quality', group: 'Partner Models', category: 'fast', featured: false },
+            { id: 'aurora-vision', name: 'Aurora Vision', desc: 'Image & multimodal understanding', group: 'Partner Models', category: 'vision', featured: true },
+            { id: 'atlas-research', name: 'Atlas Research', desc: 'Web-augmented research agent', group: 'Partner Models', category: 'research', featured: false }
+        ];
+
+        const MODEL_CATEGORIES = [
+            { id: 'all', label: 'All' },
+            { id: 'general', label: 'General' },
+            { id: 'fast', label: 'Fast' },
+            { id: 'reasoning', label: 'Reasoning' },
+            { id: 'coding', label: 'Coding' },
+            { id: 'creative', label: 'Creative' },
+            { id: 'long-context', label: 'Long Context' },
+            { id: 'vision', label: 'Vision' },
+            { id: 'research', label: 'Research' }
+        ];
+
+        let modelFilterCategory = 'all';
+
+        function modelById(id) {
+            const models = state.availableModels.length > 0 ? state.availableModels : AVAILABLE_MODELS;
+            return models.find(function (m) { return m.id === id; }) || models[0];
+        }
+
+        function openModelModal() {
+            document.getElementById('modelModal').classList.add('open');
+            const searchInput = document.getElementById('modelSearchInput');
+            searchInput.value = '';
+            modelFilterCategory = 'all';
+            renderModelFilters();
+            renderModelModalList();
+            setTimeout(function () { searchInput.focus(); }, 100);
+        }
+        function closeModelModal() { document.getElementById('modelModal').classList.remove('open'); }
+
+        function renderModelFilters() {
+            const container = document.getElementById('modelFilters');
+            container.innerHTML = '';
+            MODEL_CATEGORIES.forEach(function (cat) {
+                const chip = document.createElement('button');
+                chip.className = 'model-filter-chip' + (modelFilterCategory === cat.id ? ' active' : '');
+                chip.textContent = cat.label;
+                chip.onclick = function () { modelFilterCategory = cat.id; renderModelFilters(); renderModelModalList(); };
+                container.appendChild(chip);
+            });
+        }
+
+        function renderModelModalList() {
+            const list = document.getElementById('modelModalList');
+            const query = (document.getElementById('modelSearchInput').value || '').trim().toLowerCase();
+            list.innerHTML = '';
+
+            let filtered = state.availableModels.length > 0 ? state.availableModels : AVAILABLE_MODELS;
+            if (modelFilterCategory !== 'all') {
+                filtered = filtered.filter(function (m) { return m.category === modelFilterCategory; });
+            }
+            if (query) {
+                filtered = filtered.filter(function (m) {
+                    return m.name.toLowerCase().includes(query) ||
+                           m.desc.toLowerCase().includes(query) ||
+                           m.group.toLowerCase().includes(query) ||
+                           m.category.toLowerCase().includes(query);
+                });
+            }
+
+            if (filtered.length === 0) {
+                const empty = document.createElement('div');
+                empty.className = 'model-modal-empty';
+                empty.textContent = 'No models match your filters.';
+                list.appendChild(empty);
+                return;
+            }
+
+            // Featured section first
+            const featured = filtered.filter(function (m) { return m.featured; });
+            if (featured.length > 0 && modelFilterCategory === 'all' && !query) {
+                const fHeader = document.createElement('div');
+                fHeader.className = 'model-modal-group';
+                fHeader.style.background = 'linear-gradient(135deg, rgba(245,158,11,0.08), rgba(236,72,153,0.08))';
+                fHeader.style.borderRadius = '8px';
+                fHeader.textContent = '★ Featured';
+                list.appendChild(fHeader);
+                featured.forEach(function (model) { list.appendChild(createModelItem(model, true)); });
+            }
+
+            // Favorites
+            const favModels = filtered.filter(function (m) { return state.favoriteModels.includes(m.id); });
+            if (favModels.length > 0) {
+                const favHeader = document.createElement('div');
+                favHeader.className = 'model-modal-favs-header';
+                favHeader.textContent = '★ Favorites';
+                list.appendChild(favHeader);
+                favModels.forEach(function (model) { list.appendChild(createModelItem(model, false)); });
+            }
+
+            // Remaining grouped
+            const shown = new Set();
+            featured.forEach(function (m) { shown.add(m.id); });
+            favModels.forEach(function (m) { shown.add(m.id); });
+            const others = filtered.filter(function (m) { return !shown.has(m.id); });
+            let lastGroup = null;
+            others.forEach(function (model) {
+                if (model.group !== lastGroup) {
+                    lastGroup = model.group;
+                    const groupEl = document.createElement('div');
+                    groupEl.className = 'model-modal-group';
+                    groupEl.textContent = model.group;
+                    list.appendChild(groupEl);
+                }
+                list.appendChild(createModelItem(model, false));
+            });
+        }
+
+        function createModelItem(model, isFeatured) {
+            const item = document.createElement('button');
+            item.className = 'model-modal-item' + (state.selectedModel === model.id ? ' selected' : '');
+            item.onclick = function () {
+                state.selectedModel = model.id;
+                const activeId = state.activeTab;
+                const activeChat = getChat(activeId);
+                if (activeChat) {
+                    activeChat.model = model.id;
+                    activeChat.updatedAt = Date.now();
+                }
+                saveState();
+                closeModelModal();
+                render();
+            };
+            const info = document.createElement('div');
+            info.className = 'model-modal-item-info';
+            const name = document.createElement('div');
+            name.className = 'model-modal-item-name';
+            name.textContent = model.name;
+            if (model.featured) {
+                const badge = document.createElement('span');
+                badge.className = 'model-featured-badge';
+                badge.textContent = 'Featured';
+                name.appendChild(badge);
+            }
+            const catBadge = document.createElement('span');
+            catBadge.className = 'model-cat-badge';
+            catBadge.textContent = model.category;
+            name.appendChild(catBadge);
+            const desc = document.createElement('div');
+            desc.className = 'model-modal-item-desc';
+            desc.textContent = model.desc;
+            info.appendChild(name); info.appendChild(desc);
+            item.appendChild(info);
+
+            const favBtn = document.createElement('button');
+            favBtn.className = 'model-modal-fav' + (state.favoriteModels.includes(model.id) ? ' favorited' : '');
+            favBtn.innerHTML = state.favoriteModels.includes(model.id) ? '★' : '☆';
+            favBtn.title = state.favoriteModels.includes(model.id) ? 'Remove from favorites' : 'Add to favorites';
+            favBtn.setAttribute('aria-label', favBtn.title);
+            favBtn.onclick = function (e) { e.stopPropagation(); toggleFavoriteModel(model.id); renderModelModalList(); };
+            item.appendChild(favBtn);
+
+            if (state.selectedModel === model.id) {
+                const check = document.createElement('span');
+                check.className = 'model-modal-item-check';
+                check.textContent = '\u2713';
+                item.appendChild(check);
+            }
+            return item;
+        }
+
+        function toggleFavoriteModel(modelId) {
+            const idx = state.favoriteModels.indexOf(modelId);
+            if (idx === -1) state.favoriteModels.push(modelId);
+            else state.favoriteModels.splice(idx, 1);
+            saveState();
+        }
+
+        // ---------- Chat interface ----------
+        function renderChat(chatId) {
+            const chat = getChat(chatId);
+            const temp = isTempChat(chatId);
+            const page = document.createElement('div');
+            page.className = 'page chat-page';
+
+            const header = document.createElement('div');
+            header.className = 'chat-header';
+            const headerLeft = document.createElement('div');
+            const titleEl = document.createElement('div');
+            titleEl.className = 'chat-header-title';
+            titleEl.textContent = chat.title;
+            if (temp) {
+                const badge = document.createElement('span');
+                badge.className = 'temp-badge';
+                badge.textContent = 'Temporary';
+                titleEl.appendChild(badge);
+            }
+            const metaEl = document.createElement('div');
+            metaEl.className = 'chat-header-meta';
+            const msgs = readChatMessages(chatId);
+            const modelName = modelById(chat.model || state.selectedModel).name;
+            metaEl.textContent = modelName + ' · ' + msgs.length + ' message' + (msgs.length === 1 ? '' : 's') + (temp ? ' · Not saved' : '');
+            headerLeft.appendChild(titleEl); headerLeft.appendChild(metaEl);
+            const headerRight = document.createElement('div');
+            headerRight.style.display = 'flex';
+            headerRight.style.alignItems = 'center';
+            headerRight.style.gap = '8px';
+            const modelBtn = document.createElement('button');
+            modelBtn.className = 'model-select-btn';
+            modelBtn.setAttribute('aria-label', 'Select model');
+            modelBtn.innerHTML = '<span>' + modelById(state.selectedModel).name + '</span><span class="chevron">\u25bc</span>';
+            modelBtn.onclick = function () { openModelModal(); };
+            const renameBtn = document.createElement('button');
+            renameBtn.className = 'chat-rename-btn';
+            renameBtn.textContent = 'Rename';
+            renameBtn.onclick = function () { renameChat(chatId); };
+            headerRight.appendChild(modelBtn); headerRight.appendChild(renameBtn);
+            header.appendChild(headerLeft); header.appendChild(headerRight);
+            page.appendChild(header);
+
+            const messages = document.createElement('div');
+            messages.className = 'chat-messages';
+            messages.id = 'chatMessages-' + chatId;
+            if (msgs.length === 0) {
+                const empty = document.createElement('div');
+                empty.className = 'chat-empty';
+                empty.innerHTML = '<div class="chat-empty-logo">SC.AI</div><div>Ask me anything to get started.</div>';
+                messages.appendChild(empty);
+            } else {
+                msgs.forEach(function (msg, index) {
+                    const role = fromOpenAIRole(msg.role);
+                    const wrap = document.createElement('div');
+                    wrap.className = 'chat-msg ' + (role === 'user' ? 'user' : 'ai');
+                    wrap.dataset.msgIndex = index;
+                    const avatar = document.createElement('div');
+                    avatar.className = 'chat-msg-avatar';
+                    avatar.textContent = role === 'user' ? 'You' : 'AI';
+                    const content = document.createElement('div');
+                    const bubble = document.createElement('div');
+                    bubble.className = 'chat-msg-bubble';
+                    bubble.dataset.msgContent = msg.content || '';
+                    // Format markdown for AI messages, plain text for user messages
+                    if (role === 'ai') {
+                        bubble.innerHTML = formatStreamingMarkdown(msg.content || '');
+                        requestAnimationFrame(function () { typesetMathIn(bubble); });
+                    } else {
+                        bubble.textContent = msg.content || '';
+                    }
+                    content.appendChild(bubble);
+
+                    // Add action buttons
+                    const actions = document.createElement('div');
+                    actions.className = 'chat-msg-actions';
+                    
+                    if (role === 'user') {
+                        const copyBtn = document.createElement('button');
+                        copyBtn.className = 'chat-msg-action-btn';
+                        copyBtn.innerHTML = '📋 Copy';
+                        copyBtn.onclick = function () { copyMessageText(msg.content || '', copyBtn); };
+                        actions.appendChild(copyBtn);
+
+                        const editBtn = document.createElement('button');
+                        editBtn.className = 'chat-msg-action-btn';
+                        editBtn.innerHTML = '✏️ Edit';
+                        editBtn.onclick = function () { editUserMessage(chatId, index, msg.content || '', bubble, actions); };
+                        actions.appendChild(editBtn);
+                    } else {
+                        const copyBtn = document.createElement('button');
+                        copyBtn.className = 'chat-msg-action-btn';
+                        copyBtn.innerHTML = '📋 Copy';
+                        copyBtn.onclick = function () { copyMessageText(msg.content || '', copyBtn); };
+                        actions.appendChild(copyBtn);
+                    }
+
+                    content.appendChild(actions);
+                    wrap.appendChild(avatar); wrap.appendChild(content);
+                    messages.appendChild(wrap);
+                });
+            }
+            page.appendChild(messages);
+
+            const inputArea = document.createElement('div');
+            inputArea.className = 'chat-input-area';
+            const form = document.createElement('form');
+            form.className = 'chat-form';
+            form.id = 'chatForm-' + chatId;
+            form.onsubmit = function (e) { sendMessage(e, chatId); };
+            const textarea = document.createElement('textarea');
+            textarea.className = 'chat-input';
+            textarea.id = 'chatInput-' + chatId;
+            textarea.placeholder = 'Message SC.AI...';
+            textarea.rows = 1;
+            textarea.autocomplete = 'off';
+            textarea.onkeydown = function (e) { handleChatKeydown(e, chatId); };
+            textarea.oninput = function () { autoGrow(textarea); };
+            const optimiseBtn = document.createElement('button');
+            optimiseBtn.type = 'button';
+            optimiseBtn.className = 'optimise-btn';
+            optimiseBtn.innerHTML = '✨ Optimise';
+            optimiseBtn.onclick = function () { startOptimisePrompt(chatId); };
+            const sendBtn = document.createElement('button');
+            sendBtn.className = 'btn'; sendBtn.type = 'submit'; sendBtn.textContent = 'Send';
+            form.appendChild(textarea); form.appendChild(optimiseBtn); form.appendChild(sendBtn);
+            inputArea.appendChild(form);
+            page.appendChild(inputArea);
+
+            requestAnimationFrame(function () { messages.scrollTop = messages.scrollHeight; textarea.focus(); });
+            return page;
+        }
+
+        // ---------- New Tab page ----------
+        function renderNewTabPage() {
+            const page = document.createElement('div');
+            page.className = 'page chat-page';
+            const inner = document.createElement('div');
+            inner.className = 'new-tab-page';
+            inner.innerHTML =
+                '<div class="new-tab-title">What would you like to do?</div>' +
+                '<div class="new-tab-sub">Choose an option to get started</div>' +
+                '<div class="new-tab-actions">' +
+                    '<button class="new-tab-btn" onclick="newChat()">' +
+                        '<svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a4 4 0 0 1-4 4H7l-4 3V7a4 4 0 0 1 4-4h10a4 4 0 0 1 4 4z"/><path d="M12 8v6M9 11h6"/></svg>' +
+                        'Create New Chat' +
+                    '</button>' +
+                    '<button class="new-tab-btn" onclick="openMyChatsTab()">' +
+                        '<svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 8h2a2 2 0 0 1 2 2v6a2 2 0 0 1-2 2h-2v4l-4-4H9a2 2 0 0 1-2-2v-1"/><path d="M3 4a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v6a2 2 0 0 1-2 2H9l-4 4v-4H5a2 2 0 0 1-2-2z"/></svg>' +
+                        'Open Existing Chat' +
+                    '</button>' +
+                    '<button class="new-tab-btn" onclick="newTemporaryChat()">' +
+                        '<svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7z"/><circle cx="12" cy="12" r="3"/><path d="M3 3l18 18"/></svg>' +
+                        'Temporary Chat' +
+                        '<span style="font-size:0.72rem;font-weight:500;color:var(--text-muted);">Not saved · no files</span>' +
+                    '</button>' +
+                '</div>';
+
+            page.appendChild(inner);
+            return page;
+        }
+
+        // ---------- Placeholder pages ----------
+        function renderPlaceholder(title, sub) {
+            const page = document.createElement('div');
+            page.className = 'page chat-page';
+            const inner = document.createElement('div');
+            inner.className = 'placeholder-page';
+            const t = document.createElement('div');
+            t.className = 'placeholder-title';
+            t.textContent = title;
+            const s = document.createElement('div');
+            s.textContent = sub;
+            inner.appendChild(t); inner.appendChild(s);
+            page.appendChild(inner);
+            return page;
+        }
+        function openForgeTab() { openTab('forge'); }
+        function openFilesTab() { openTab('files'); }
+
+        // ============================================================
+        // FILES PAGE — split screen: file explorer + code editor
+        // ============================================================
+        let filesState = {
+            selectedChat: null,   // chat id currently browsed
+            openFile: null,       // full path currently open
+            openTabs: [],         // open file paths
+            dirty: {},            // { path: bool }
+            collapsed: {},        // folder collapse state
+            search: '',
+            autosaveTimer: null
+        };
+
+        function renderFilesPage() {
+            const page = document.createElement('div');
+            page.className = 'page files-page';
+
+            // Toolbar
+            const toolbar = document.createElement('div');
+            toolbar.className = 'files-toolbar';
+            const title = document.createElement('div');
+            title.className = 'files-toolbar-title';
+            title.textContent = 'Files';
+            const actions = document.createElement('div');
+            actions.className = 'files-toolbar-actions';
+            const select = document.createElement('select');
+            select.className = 'files-chat-select';
+            select.title = 'Choose a chat folder to browse';
+            const chats = Object.values(state.chats).sort(function (a, b) { return b.updatedAt - a.updatedAt; });
+            if (chats.length === 0) {
+                const opt = document.createElement('option');
+                opt.textContent = 'No chats — create one first';
+                opt.value = '';
+                select.appendChild(opt);
+                filesState.selectedChat = null;
+            } else {
+                if (!filesState.selectedChat || !state.chats[filesState.selectedChat]) {
+                    filesState.selectedChat = chats[0].id;
+                }
+                chats.forEach(function (chat) {
+                    const opt = document.createElement('option');
+                    opt.value = chat.id;
+                    opt.textContent = chat.title;
+                    if (chat.id === filesState.selectedChat) opt.selected = true;
+                    select.appendChild(opt);
+                });
+            }
+            select.onchange = function () {
+                filesState.selectedChat = select.value || null;
+                filesState.openFile = null;
+                filesState.openTabs = [];
+                filesState.dirty = {};
+                render();
+            };
+            const newFileBtn = document.createElement('button');
+            newFileBtn.className = 'btn secondary';
+            newFileBtn.textContent = '+ New File';
+            newFileBtn.onclick = function () { newFilePrompt(); };
+            actions.appendChild(select);
+            actions.appendChild(newFileBtn);
+            toolbar.appendChild(title);
+            toolbar.appendChild(actions);
+            page.appendChild(toolbar);
+
+            const split = document.createElement('div');
+            split.className = 'files-split';
+            split.appendChild(renderFileExplorer());
+            split.appendChild(renderFileEditor());
+            page.appendChild(split);
+            return page;
+        }
+
+        function renderFileExplorer() {
+            const explorer = document.createElement('div');
+            explorer.className = 'file-explorer';
+
+            const header = document.createElement('div');
+            header.className = 'file-explorer-header';
+            const label = document.createElement('span');
+            label.textContent = filesState.selectedChat ? 'Explorer' : 'No chat selected';
+            const addBtn = document.createElement('button');
+            addBtn.className = 'btn secondary';
+            addBtn.style.padding = '3px 8px';
+            addBtn.style.fontSize = '0.72rem';
+            addBtn.textContent = '+';
+            addBtn.title = 'New file';
+            addBtn.onclick = function () { newFilePrompt(); };
+            header.appendChild(label);
+            header.appendChild(addBtn);
+            explorer.appendChild(header);
+
+            const tree = document.createElement('div');
+            tree.className = 'file-tree';
+            explorer.appendChild(tree);
+
+            const search = document.createElement('input');
+            search.type = 'search';
+            search.className = 'file-explorer-search';
+            search.placeholder = 'Search files...';
+            search.value = filesState.search;
+            search.oninput = function () { filesState.search = search.value; renderFileTreeInto(tree); };
+            explorer.appendChild(search);
+
+            renderFileTreeInto(tree);
+            return explorer;
+        }
+
+        function renderFileTreeInto(container) {
+            container.innerHTML = '';
+            const chats = Object.values(state.chats).sort(function (a, b) { return b.updatedAt - a.updatedAt; });
+            const q = filesState.search.trim().toLowerCase();
+            if (chats.length === 0) {
+                const empty = document.createElement('div');
+                empty.className = 'file-explorer-empty';
+                empty.textContent = 'Select a chat above to browse its files.';
+                container.appendChild(empty);
+                return;
+            }
+            const forest = document.createElement('div');
+            forest.className = 'file-tree-forest';
+            let visibleCount = 0;
+            chats.forEach(function (chat) {
+                let files = listChatFiles(chat.id);
+                if (q) files = files.filter(function (p) { return p.toLowerCase().includes(q); });
+                if (files.length === 0) {
+                    if (!q) {
+                        files = [chatMessagesPath(chat.id)];
+                    } else {
+                        return;
+                    }
+                }
+                visibleCount++;
+                const chatWrap = document.createElement('div');
+                chatWrap.className = 'file-tree-root';
+                const chatRow = document.createElement('div');
+                const rootKey = chat.id + '/';
+                const isCollapsed = !!filesState.collapsed[rootKey];
+                const isSelected = filesState.selectedChat === chat.id;
+                chatRow.className = 'file-tree-node file-tree-folder' + (isCollapsed ? ' collapsed' : '') + (isSelected ? ' active' : '');
+                chatRow.style.paddingLeft = '8px';
+                chatRow.innerHTML =
+                    '<svg class="ft-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9l6 6 6-6"/></svg>' +
+                    '<svg class="ft-icon" viewBox="0 0 24 24" fill="currentColor" style="color:#eab308"><path d="M2 6a2 2 0 012-2h5l2 2h5a2 2 0 012 2v6a2 2 0 01-2 2H4a2 2 0 01-2-2V6z"/></svg>' +
+                    '<span class="ft-name">' + escHtml(chat.title) + '</span>';
+                chatRow.onclick = function () {
+                    const switchingChat = filesState.selectedChat !== chat.id;
+                    filesState.selectedChat = chat.id;
+                    if (switchingChat) {
+                        filesState.openFile = null;
+                        filesState.openTabs = [];
+                        filesState.dirty = {};
+                    }
+                    filesState.collapsed[rootKey] = !filesState.collapsed[rootKey];
+                    render();
+                };
+                chatWrap.appendChild(chatRow);
+                const chatChildren = document.createElement('div');
+                chatChildren.className = 'file-tree-children';
+                if (!isCollapsed) {
+                    const relFiles = files.map(function (p) { return p.slice(chatDir(chat.id).length); });
+                    const tree = buildTree(relFiles);
+                    chatChildren.appendChild(renderTreeNode(tree, 1, '', chat.id));
+                }
+                chatWrap.appendChild(chatChildren);
+                forest.appendChild(chatWrap);
+            });
+            if (!visibleCount) {
+                const empty = document.createElement('div');
+                empty.className = 'file-explorer-empty';
+                empty.textContent = q ? 'No files match your search.' : 'No files. Click + to create one.';
+                container.appendChild(empty);
+                return;
+            }
+            container.appendChild(forest);
+        }
+
+        function buildTree(paths) {
+            const root = {};
+            paths.sort().forEach(function (p) {
+                const parts = p.split('/');
+                let node = root;
+                parts.forEach(function (part, i) {
+                    if (i === parts.length - 1) node[part] = { __file: p };
+                    else { node[part] = node[part] || {}; node = node[part]; }
+                });
+            });
+            return root;
+        }
+
+        function getChatName(chatId) {
+            const chat = state.chats[chatId];
+            return chat ? chat.title : chatId;
+        }
+
+        function getFileDisplayLabel(path) {
+            const parts = String(path).split('/');
+            const name = parts[parts.length - 1] || path;
+            const chatId = parts[0] || '';
+            const rel = parts.slice(1).join('/');
+            if (!chatId || !rel) return path;
+            return getChatName(chatId) + '/' + rel;
+        }
+
+        function renderTreeNode(node, depth, parentPath, chatId) {
+            const wrap = document.createElement('div');
+            const entries = Object.keys(node).sort(function (a, b) {
+                const aF = !!node[a].__file, bF = !!node[b].__file;
+                if (aF !== bF) return aF ? 1 : -1;
+                return a.localeCompare(b);
+            });
+            entries.forEach(function (name) {
+                const item = node[name];
+                const pad = 8 + depth * 14;
+                if (item.__file) {
+                    const rel = item.__file;
+                    const fullPath = chatId + '/' + rel;
+                    const row = document.createElement('div');
+                    row.className = 'file-tree-node' + (filesState.openFile === fullPath ? ' active' : '');
+                    row.style.paddingLeft = pad + 'px';
+                    row.innerHTML = fileIconHTML(name) + '<span class="ft-name">' + escHtml(name) + '</span>';
+                    row.onclick = function () { openFile(fullPath); };
+                    wrap.appendChild(row);
+                } else {
+                    const folderPath = parentPath ? parentPath + '/' + name : name;
+                    const isCollapsed = !!filesState.collapsed[chatId + '/' + folderPath];
+                    const folderRow = document.createElement('div');
+                    folderRow.className = 'file-tree-node file-tree-folder' + (isCollapsed ? ' collapsed' : '');
+                    folderRow.style.paddingLeft = pad + 'px';
+                    folderRow.innerHTML =
+                        '<svg class="ft-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9l6 6 6-6"/></svg>' +
+                        '<svg class="ft-icon" viewBox="0 0 24 24" fill="currentColor" style="color:#eab308"><path d="M2 6a2 2 0 012-2h5l2 2h5a2 2 0 012 2v6a2 2 0 01-2 2H4a2 2 0 01-2-2V6z"/></svg>' +
+                        '<span class="ft-name">' + escHtml(name) + '</span>';
+                    folderRow.onclick = function () {
+                        const key = chatId + '/' + folderPath;
+                        filesState.collapsed[key] = !filesState.collapsed[key];
+                        render();
+                    };
+                    wrap.appendChild(folderRow);
+                    const children = document.createElement('div');
+                    children.className = 'file-tree-children';
+                    children.appendChild(renderTreeNode(item, depth + 1, folderPath, chatId));
+                    wrap.appendChild(children);
+                }
+            });
+            return wrap;
+        }
+
+        function fileIconHTML(name) {
+            const cls = 'ft-icon';
+            if (name.endsWith('.json')) return '<svg class="' + cls + '" viewBox="0 0 24 24" fill="currentColor" style="color:#eab308"><path d="M4 4a2 2 0 012-2h8l6 6v12a2 2 0 01-2 2H6a2 2 0 01-2-2V4z"/></svg>';
+            if (name.endsWith('.html') || name.endsWith('.htm')) return '<svg class="' + cls + '" viewBox="0 0 24 24" fill="currentColor" style="color:#f97316"><path d="M4 4a2 2 0 012-2h8l6 6v12a2 2 0 01-2 2H6a2 2 0 01-2-2V4z"/></svg>';
+            if (name.endsWith('.md')) return '<svg class="' + cls + '" viewBox="0 0 24 24" fill="currentColor" style="color:#64748b"><path d="M4 4a2 2 0 012-2h8l6 6v12a2 2 0 01-2 2H6a2 2 0 01-2-2V4z"/></svg>';
+            if (name.endsWith('.js') || name.endsWith('.mjs')) return '<svg class="' + cls + '" viewBox="0 0 24 24" fill="currentColor" style="color:#eab308"><path d="M4 4a2 2 0 012-2h8l6 6v12a2 2 0 01-2 2H6a2 2 0 01-2-2V4z"/></svg>';
+            if (name.endsWith('.ts') || name.endsWith('.tsx')) return '<svg class="' + cls + '" viewBox="0 0 24 24" fill="currentColor" style="color:#3b82f6"><path d="M4 4a2 2 0 012-2h8l6 6v12a2 2 0 01-2 2H6a2 2 0 01-2-2V4z"/></svg>';
+            if (name.endsWith('.css')) return '<svg class="' + cls + '" viewBox="0 0 24 24" fill="currentColor" style="color:#06b6d4"><path d="M4 4a2 2 0 012-2h8l6 6v12a2 2 0 01-2 2H6a2 2 0 01-2-2V4z"/></svg>';
+            if (name.endsWith('.py')) return '<svg class="' + cls + '" viewBox="0 0 24 24" fill="currentColor" style="color:#3b82f6"><path d="M4 4a2 2 0 012-2h8l6 6v12a2 2 0 01-2 2H6a2 2 0 01-2-2V4z"/></svg>';
+            return '<svg class="' + cls + '" viewBox="0 0 24 24" fill="currentColor" style="color:#94a3b8"><path d="M4 4a2 2 0 012-2h8l6 6v12a2 2 0 01-2 2H6a2 2 0 01-2-2V4z"/></svg>';
+        }
+
+        function renderFileEditor() {
+            const editor = document.createElement('div');
+            editor.className = 'file-editor';
+
+            if (!filesState.openFile) {
+                const empty = document.createElement('div');
+                empty.className = 'file-editor-empty';
+                empty.innerHTML = '<div class="file-editor-empty-title">No file open</div>' +
+                    '<div>Select a file from the explorer, or create a new one.</div>';
+                editor.appendChild(empty);
+                return editor;
+            }
+
+            // Open file tabs
+            const tabsBar = document.createElement('div');
+            tabsBar.className = 'file-editor-tabs';
+            filesState.openTabs.forEach(function (path) {
+                const tab = document.createElement('div');
+                tab.className = 'file-editor-tab' + (path === filesState.openFile ? ' active' : '');
+                const name = path.split('/').pop();
+                tab.innerHTML = fileIconHTML(name) + '<span class="file-tab-label">' + escHtml(getFileDisplayLabel(path)) + '</span>';
+                tab.onclick = function () { openFile(path, false); };
+                const close = document.createElement('span');
+                close.className = 'fet-close';
+                close.textContent = '×';
+                close.onclick = function (e) { e.stopPropagation(); closeFileTab(path); };
+                tab.appendChild(close);
+                tabsBar.appendChild(tab);
+            });
+            editor.appendChild(tabsBar);
+
+            // Bar with path + save
+            const bar = document.createElement('div');
+            bar.className = 'file-editor-bar';
+            const dirty = !!filesState.dirty[filesState.openFile];
+            bar.innerHTML =
+                '<span class="dirty-dot' + (dirty ? ' show' : '') + '"></span>' +
+                '<span class="current-path" title="' + escHtml(filesState.openFile) + '">' + escHtml(getFileDisplayLabel(filesState.openFile)) + '</span>' +
+                '<span class="spacer"></span>' +
+                '<button class="save-btn" onclick="saveCurrentFile()">Save</button>';
+            editor.appendChild(bar);
+
+            // Code area: highlighted pre + transparent textarea overlay
+            const codeArea = document.createElement('div');
+            codeArea.className = 'code-area';
+
+            const gutter = document.createElement('div');
+            gutter.className = 'code-gutter';
+            codeArea.appendChild(gutter);
+
+            const codeWrap = document.createElement('div');
+            codeWrap.className = 'code-wrap';
+            const textarea = document.createElement('textarea');
+            textarea.className = 'code-textarea';
+            textarea.spellcheck = false;
+            textarea.id = 'codeTextarea';
+            textarea.placeholder = 'Type here...';
+            textarea.wrap = 'off';
+
+            const content = FS[filesState.openFile] || '';
+            textarea.value = content;
+
+            codeWrap.appendChild(textarea);
+            codeArea.appendChild(codeWrap);
+            editor.appendChild(codeArea);
+
+            // Wire up events after DOM attached
+            requestAnimationFrame(function () {
+                updateLineNumbers(gutter, textarea);
+                textarea.focus();
+            });
+
+            textarea.addEventListener('input', function () {
+                filesState.dirty[filesState.openFile] = true;
+                updateLineNumbers(gutter, textarea);
+                updateDirtyDot();
+                scheduleAutoSave();
+            });
+            textarea.addEventListener('scroll', function () {
+                gutter.scrollTop = textarea.scrollTop;
+            });
+            textarea.addEventListener('keydown', function (e) {
+                if ((e.metaKey || e.ctrlKey) && e.key === 's') { e.preventDefault(); saveCurrentFile(); }
+                if (e.key === 'Tab') {
+                    e.preventDefault();
+                    const s = textarea.selectionStart, en = textarea.selectionEnd;
+                    textarea.value = textarea.value.slice(0, s) + '  ' + textarea.value.slice(en);
+                    textarea.selectionStart = textarea.selectionEnd = s + 2;
+                    updateLineNumbers(gutter, textarea);
+                }
+            });
+
+            return editor;
+        }
+
+        function scheduleAutoSave() {
+            if (filesState.autosaveTimer) clearTimeout(filesState.autosaveTimer);
+            filesState.autosaveTimer = setTimeout(function () {
+                filesState.autosaveTimer = null;
+                saveCurrentFile();
+            }, 700);
+        }
+
+        function updateDirtyDot() {
+            const dot = document.querySelector('.file-editor-bar .dirty-dot');
+            if (dot) dot.classList.toggle('show', !!filesState.dirty[filesState.openFile]);
+        }
+
+        function updateLineNumbers(gutter, textarea) {
+            const lines = textarea.value.split('\n').length;
+            let html = '';
+            for (let i = 1; i <= Math.max(lines, 24); i++) html += '<div>' + i + '</div>';
+            gutter.innerHTML = html;
+        }
+
+        function openFile(path, switchTo) {
+            if (!(path in FS)) return;
+            if (filesState.openFile && filesState.dirty[filesState.openFile] && filesState.openFile !== path) saveCurrentFile();
+            filesState.openFile = path;
+            if (!filesState.openTabs.includes(path)) filesState.openTabs.push(path);
+            render();
+        }
+
+        function closeFileTab(path) {
+            const idx = filesState.openTabs.indexOf(path);
+            if (idx !== -1) filesState.openTabs.splice(idx, 1);
+            if (filesState.openFile === path) {
+                filesState.openFile = filesState.openTabs[filesState.openTabs.length - 1] || null;
+            }
+            render();
+        }
+
+        function saveCurrentFile() {
+            if (!filesState.openFile) return;
+            const ta = document.getElementById('codeTextarea');
+            if (!ta) return;
+            FS[filesState.openFile] = ta.value;
+            filesState.dirty[filesState.openFile] = false;
+            saveFS();
+            updateDirtyDot();
+        }
+
+        window.addEventListener('beforeunload', function () {
+            if (filesState.autosaveTimer) {
+                clearTimeout(filesState.autosaveTimer);
+                filesState.autosaveTimer = null;
+            }
+            saveCurrentFile();
+        });
+
+        function newFilePrompt() {
+            if (!filesState.selectedChat) { alert('Select or create a chat first.'); return; }
+            const name = prompt('New file name (e.g. notes.md, script.js):');
+            if (!name) return;
+            const clean = name.replace(/^\/+/, '');
+            const path = filesState.selectedChat + '/' + clean;
+            if (path in FS) { alert('File already exists.'); return; }
+            FS[path] = '';
+            saveFS();
+            openFile(path);
+        }
+
+        // ============================================================
+        // Syntax highlighting — generic, "fits all languages"
+        // Tokenizes comments, strings, numbers, keywords, function
+        // calls, and HTML tags/attributes. Not perfect per-language,
+        // but gives a pleasant colored view for any code.
+        // ============================================================
+        function highlightCode(code, path) {
+            const lang = detectLang(path);
+            let html = escHtml(code);
+            // Order matters: comments first, then strings, then the rest.
+            // We use a tokenizer approach to avoid nested replacements.
+
+            const tokens = tokenize(code, lang);
+            return tokens.map(function (t) {
+                const text = escHtml(t.value);
+                switch (t.type) {
+                    case 'comment': return '<span class="tok-comment">' + text + '</span>';
+                    case 'string': return '<span class="tok-string">' + text + '</span>';
+                    case 'number': return '<span class="tok-number">' + text + '</span>';
+                    case 'keyword': return '<span class="tok-keyword">' + text + '</span>';
+                    case 'func': return '<span class="tok-func">' + text + '</span>';
+                    case 'tag': return '<span class="tok-tag">' + text + '</span>';
+                    case 'attr': return '<span class="tok-attr">' + text + '</span>';
+                    case 'punct': return '<span class="tok-punct">' + text + '</span>';
+                    default: return text;
+                }
+            }).join('');
+        }
+
+        function detectLang(path) {
+            const n = path.toLowerCase();
+            if (n.endsWith('.html') || n.endsWith('.htm')) return 'html';
+            if (n.endsWith('.json')) return 'json';
+            if (n.endsWith('.js') || n.endsWith('.mjs')) return 'js';
+            if (n.endsWith('.ts') || n.endsWith('.tsx')) return 'js';
+            if (n.endsWith('.css')) return 'css';
+            if (n.endsWith('.py')) return 'py';
+            if (n.endsWith('.md')) return 'md';
+            return 'text';
+        }
+
+        const KEYWORDS = {
+            js: ['const','let','var','function','return','if','else','for','while','do','switch','case','break','continue','new','class','extends','super','this','typeof','instanceof','in','of','try','catch','finally','throw','async','await','yield','import','export','from','default','null','undefined','true','false','void','delete'],
+            py: ['def','return','if','elif','else','for','while','break','continue','import','from','as','class','try','except','finally','raise','with','lambda','yield','global','nonlocal','pass','None','True','False','and','or','not','in','is','del','assert'],
+            css: ['important'],
+            json: ['true','false','null'],
+            md: [],
+            html: [],
+            text: []
+        };
+
+        function tokenize(code, lang) {
+            const tokens = [];
+            let i = 0;
+            const len = code.length;
+            const kws = KEYWORDS[lang] || KEYWORDS.text;
+
+            function isWordChar(c) { return /[A-Za-z0-9_$]/.test(c); }
+            function isDigit(c) { return /[0-9]/.test(c); }
+
+            while (i < len) {
+                const c = code[i];
+                const two = code.slice(i, i + 2);
+
+                // Line comments
+                if (lang === 'js' || lang === 'css' || lang === 'py') {
+                    if (two === '//' || (lang === 'py' && c === '#')) {
+                        let j = i;
+                        while (j < len && code[j] !== '\n') j++;
+                        tokens.push({ type: 'comment', value: code.slice(i, j) });
+                        i = j;
+                        continue;
+                    }
+                }
+                if (lang === 'html' || lang === 'md') {
+                    if (c === '<' && code.slice(i, i + 4) === '<!--') {
+                        let j = code.indexOf('-->', i);
+                        if (j === -1) j = len; else j += 3;
+                        tokens.push({ type: 'comment', value: code.slice(i, j) });
+                        i = j;
+                        continue;
+                    }
+                }
+
+                // Block comments
+                if (two === '/*') {
+                    let j = code.indexOf('*/', i + 2);
+                    if (j === -1) j = len; else j += 2;
+                    tokens.push({ type: 'comment', value: code.slice(i, j) });
+                    i = j;
+                    continue;
+                }
+
+                // Strings
+                if (c === '"' || c === "'" || c === '`') {
+                    const quote = c;
+                    let j = i + 1;
+                    while (j < len) {
+                        if (code[j] === '\\') { j += 2; continue; }
+                        if (code[j] === quote) { j++; break; }
+                        j++;
+                    }
+                    tokens.push({ type: 'string', value: code.slice(i, j) });
+                    i = j;
+                    continue;
+                }
+
+                // Numbers
+                if (isDigit(c) || (c === '.' && isDigit(code[i + 1]))) {
+                    let j = i + 1;
+                    while (j < len && /[0-9a-fA-FxX._eE+\-]/.test(code[j])) {
+                        // stop on +/- if not part of exponent
+                        if ((code[j] === '+' || code[j] === '-') && !/[eE]/.test(code[j - 1])) break;
+                        j++;
+                    }
+                    tokens.push({ type: 'number', value: code.slice(i, j) });
+                    i = j;
+                    continue;
+                }
+
+                // HTML tags & attributes
+                if (lang === 'html' && c === '<') {
+                    let j = i + 1;
+                    if (code[j] === '/') j++;
+                    // tag name
+                    let m = j;
+                    while (m < len && /[A-Za-z0-9!-]/.test(code[m])) m++;
+                    if (m > j) {
+                        tokens.push({ type: 'punct', value: code.slice(i, j) });
+                        tokens.push({ type: 'tag', value: code.slice(j, m) });
+                        j = m;
+                        // attributes until >
+                        while (j < len && code[j] !== '>') {
+                            if (code[j] === '"' || code[j] === "'") {
+                                const q = code[j]; let k = j + 1;
+                                while (k < len && code[k] !== q) k++;
+                                k++;
+                                tokens.push({ type: 'string', value: code.slice(j, k) });
+                                j = k;
+                                continue;
+                            }
+                            // attr name
+                            let a = j;
+                            while (a < len && /[A-Za-z0-9_:-]/.test(code[a])) a++;
+                            if (a > j) {
+                                tokens.push({ type: 'attr', value: code.slice(j, a) });
+                                j = a;
+                                continue;
+                            }
+                            j++;
+                        }
+                        if (j < len) { tokens.push({ type: 'punct', value: code[j] }); j++; }
+                        i = j;
+                        continue;
+                    }
+                }
+
+                // Words (keywords / functions / identifiers)
+                if (isWordChar(c)) {
+                    let j = i + 1;
+                    while (j < len && isWordChar(code[j])) j++;
+                    const word = code.slice(i, j);
+                    // function call? next non-space char is '('
+                    let k = j;
+                    while (k < len && /\s/.test(code[k])) k++;
+                    if (kws.includes(word)) {
+                        tokens.push({ type: 'keyword', value: word });
+                    } else if (code[k] === '(' && (lang === 'js' || lang === 'py' || lang === 'text')) {
+                        tokens.push({ type: 'func', value: word });
+                    } else {
+                        tokens.push({ type: 'word', value: word });
+                    }
+                    i = j;
+                    continue;
+                }
+
+                // Punctuation
+                if (/[{}[\]();,]/.test(c)) {
+                    tokens.push({ type: 'punct', value: c });
+                    i++;
+                    continue;
+                }
+
+                // Default: single char
+                tokens.push({ type: 'text', value: c });
+                i++;
+            }
+            return tokens;
+        }
+
+        function escHtml(s) {
+            return String(s)
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#39;');
+        }
+
+        // ============================================================
+        // Settings
+        // ============================================================
+        function openSettings() {
+            document.getElementById('settingsModal').classList.add('open');
+            renderAccentPresets();
+            const picker = document.getElementById('accentColorPicker');
+            if (picker) picker.value = state.accentColor;
+            closeMobileSidebar();
+        }
+        function closeSettings() { document.getElementById('settingsModal').classList.remove('open'); }
+
+        // ============================================================
+        // Optimise Prompt
+        // ============================================================
+        let optimiseState = {
+            chatId: null,
+            originalPrompt: '',
+            questionnaireData: null
+        };
+
+        function startOptimisePrompt(chatId) {
+            const input = document.getElementById('chatInput-' + chatId);
+            const text = input.value.trim();
+            if (!text) {
+                alert('Please enter a prompt to optimise.');
+                return;
+            }
+
+            optimiseState.chatId = chatId;
+            optimiseState.originalPrompt = text;
+
+            // Show modal with loading state
+            document.getElementById('questionnaireModal').classList.add('open');
+            document.getElementById('questionnaireBody').innerHTML =
+                '<div class="questionnaire-loading">' +
+                '<div class="ai-loading"><div class="ai-loading-ring"></div></div>' +
+                '<div>Generating questionnaire...</div>' +
+                '</div>';
+            document.getElementById('questionnaireFooter').style.display = 'none';
+
+            // Generate questionnaire using mistral-small-2506
+            generateQuestionnaire(text);
+        }
+
+        async function generateQuestionnaire(prompt) {
+            try {
+                const response = await fetch(CHAT_ENDPOINT, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        model: 'mistral-small-2506',
+                        messages: [
+                            {
+                                role: 'system',
+                                content: 'You are a prompt engineering assistant. Your task is to generate a questionnaire to gather details that will help optimise the user\'s prompt. Return ONLY a JSON object with this exact structure: {"questions": [{"id": "q1", "label": "Question text", "type": "text|textarea|select", "options": ["option1", "option2"] (only if type is select)}]}. Generate 3-5 relevant questions based on the prompt context.'
+                            },
+                            {
+                                role: 'user',
+                                content: 'Generate a questionnaire to help optimise this prompt: ' + prompt
+                            }
+                        ],
+                        stream: false
+                    })
+                });
+
+                if (!response.ok) {
+                    throw new Error('Failed to generate questionnaire: ' + response.statusText);
+                }
+
+                const data = await response.json();
+                const content = data.choices[0].message.content;
+
+                // Parse the JSON response
+                const jsonMatch = content.match(/\{[\s\S]*\}/);
+                if (!jsonMatch) {
+                    throw new Error('Invalid response format');
+                }
+
+                const questionnaire = JSON.parse(jsonMatch[0]);
+                optimiseState.questionnaireData = questionnaire;
+
+                // Render the questionnaire form
+                renderQuestionnaireForm(questionnaire);
+
+            } catch (error) {
+                console.error('Error generating questionnaire:', error);
+                document.getElementById('questionnaireBody').innerHTML =
+                    '<div style="color: var(--danger); padding: 20px; text-align: center;">' +
+                    'Error generating questionnaire: ' + error.message +
+                    '</div>';
+            }
+        }
+
+        function renderQuestionnaireForm(questionnaire) {
+            const body = document.getElementById('questionnaireBody');
+            body.innerHTML = '';
+
+            if (!questionnaire.questions || questionnaire.questions.length === 0) {
+                body.innerHTML = '<div style="padding: 20px; text-align: center; color: var(--text-muted);">No questions generated. Please try again.</div>';
+                return;
+            }
+
+            questionnaire.questions.forEach(function (q) {
+                const item = document.createElement('div');
+                item.className = 'questionnaire-item';
+
+                const label = document.createElement('label');
+                label.textContent = q.label;
+                label.htmlFor = q.id;
+                item.appendChild(label);
+
+                let input;
+                if (q.type === 'textarea') {
+                    input = document.createElement('textarea');
+                    input.id = q.id;
+                    input.placeholder = 'Enter your answer...';
+                } else if (q.type === 'select' && q.options && q.options.length > 0) {
+                    input = document.createElement('select');
+                    input.id = q.id;
+                    const defaultOption = document.createElement('option');
+                    defaultOption.value = '';
+                    defaultOption.textContent = 'Select an option...';
+                    input.appendChild(defaultOption);
+                    q.options.forEach(function (opt) {
+                        const option = document.createElement('option');
+                        option.value = opt;
+                        option.textContent = opt;
+                        input.appendChild(option);
+                    });
+                } else {
+                    input = document.createElement('input');
+                    input.type = 'text';
+                    input.id = q.id;
+                    input.placeholder = 'Enter your answer...';
+                }
+
+                item.appendChild(input);
+                body.appendChild(item);
+            });
+
+            // Show footer buttons
+            document.getElementById('questionnaireFooter').style.display = 'flex';
+        }
+
+        async function submitQuestionnaire() {
+            const questionnaire = optimiseState.questionnaireData;
+            if (!questionnaire || !questionnaire.questions) {
+                alert('No questionnaire data available.');
+                return;
+            }
+
+            // Collect answers
+            const answers = {};
+            questionnaire.questions.forEach(function (q) {
+                const input = document.getElementById(q.id);
+                if (input) {
+                    answers[q.label] = input.value;
+                }
+            });
+
+            // Show loading state
+            document.getElementById('questionnaireBody').innerHTML =
+                '<div class="questionnaire-loading">' +
+                '<div class="ai-loading"><div class="ai-loading-ring"></div></div>' +
+                '<div>Optimising prompt...</div>' +
+                '</div>';
+            document.getElementById('questionnaireFooter').style.display = 'none';
+
+            try {
+                // Build the optimisation prompt
+                const optimisationPrompt = 'Original prompt: ' + optimiseState.originalPrompt + '\n\n' +
+                    'User answers to questionnaire:\n' +
+                    Object.entries(answers).map(function ([key, value]) {
+                        return key + ': ' + value;
+                    }).join('\n') +
+                    '\n\nBased on the original prompt and the user\'s answers, please provide an optimised and expanded version of the prompt. Return ONLY the optimised prompt text, no explanations or additional text.';
+
+                const response = await fetch(CHAT_ENDPOINT, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        model: 'mistral-small-2506',
+                        messages: [
+                            {
+                                role: 'system',
+                                content: 'You are an expert prompt engineer. Your task is to optimise and expand prompts based on user requirements and context. Return ONLY the optimised prompt text, nothing else.'
+                            },
+                            {
+                                role: 'user',
+                                content: optimisationPrompt
+                            }
+                        ],
+                        stream: false
+                    })
+                });
+
+                if (!response.ok) {
+                    throw new Error('Failed to optimise prompt: ' + response.statusText);
+                }
+
+                const data = await response.json();
+                const optimisedPrompt = data.choices[0].message.content.trim();
+
+                // Update the input field with the optimised prompt
+                const input = document.getElementById('chatInput-' + optimiseState.chatId);
+                if (input) {
+                    input.value = optimisedPrompt;
+                    autoGrow(input);
+                }
+
+                // Close the modal
+                closeQuestionnaireModal();
+
+            } catch (error) {
+                console.error('Error optimising prompt:', error);
+                document.getElementById('questionnaireBody').innerHTML =
+                    '<div style="color: var(--danger); padding: 20px; text-align: center;">' +
+                    'Error optimising prompt: ' + error.message +
+                    '</div>';
+                document.getElementById('questionnaireFooter').style.display = 'flex';
+            }
+        }
+
+        function closeQuestionnaireModal() {
+            document.getElementById('questionnaireModal').classList.remove('open');
+            optimiseState = {
+                chatId: null,
+                originalPrompt: '',
+                questionnaireData: null
+            };
+        }
+
+        // ============================================================
+        // Clock (dashboard)
+        // ============================================================
+        function updateClock() {
+            const timeEl = document.getElementById('timeDisplay');
+            const dateEl = document.getElementById('dateDisplay');
+            const greetEl = document.getElementById('greeting');
+            if (!timeEl) return;
+            const now = new Date();
+            timeEl.textContent = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+            dateEl.textContent = now.toLocaleDateString([], { weekday: 'long', month: 'long', day: 'numeric' });
+            const h = now.getHours();
+            greetEl.textContent = h < 12 ? 'Good morning!' : h < 18 ? 'Good afternoon!' : 'Good evening!';
+        }
+        setInterval(updateClock, 15000);
+
+        // ============================================================
+        // Init
+        // ============================================================
+        loadState();
+        applyTheme();
+        applyAccentColor();
+        fetchModels().then(function () {
+            render();
+        }).catch(function () {
+            // Fallback to hardcoded models if fetch fails
+            render();
+        });
+    </script>
+</body>
+</html>
